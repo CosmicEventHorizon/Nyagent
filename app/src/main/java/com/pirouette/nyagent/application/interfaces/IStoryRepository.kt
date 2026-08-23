@@ -10,4 +10,6 @@ interface IStoryRepository {
     fun save(story: SavedStoryModel)
 
     fun delete(index: Int)
+
+    fun deleteByName(name: String)
 }

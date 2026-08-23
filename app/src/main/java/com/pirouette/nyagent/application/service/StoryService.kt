@@ -12,4 +12,6 @@ class StoryService(private val repository: IStoryRepository) {
     fun save(story: SavedStoryModel) = repository.save(story)
 
     fun delete(index: Int) = repository.delete(index)
+
+    fun deleteByName(name: String) = repository.deleteByName(name)
 }

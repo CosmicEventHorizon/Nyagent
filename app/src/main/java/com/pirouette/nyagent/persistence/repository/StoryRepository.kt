@@ -60,6 +60,19 @@ class StoryRepository(private val context: Context) : IStoryRepository {
         }
     }
 
+    override fun deleteByName(name: String) {
+        val stories = loadAll().filterNot { it.name == name }
+        if (stories.size != loadAll().size) {
+            try {
+                ObjectOutputStream(context.openFileOutput(FILE_NAME, Context.MODE_PRIVATE)).use { stream ->
+                    stream.writeObject(stories)
+                }
+            } catch (e: IOException) {
+                e.printStackTrace()
+            }
+        }
+    }
+
     companion object {
         private const val FILE_NAME = "array_data"
     }

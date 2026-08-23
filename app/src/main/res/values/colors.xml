@@ -37,4 +37,5 @@
     <color name="panel_item_text">#FFE0E0E0</color>
     <color name="panel_settings_bg">#FF3A3F47</color>
     <color name="new_chat_circle">#FF25D366</color>
+    <color name="panel_divider">#FF555555</color>
 </resources>

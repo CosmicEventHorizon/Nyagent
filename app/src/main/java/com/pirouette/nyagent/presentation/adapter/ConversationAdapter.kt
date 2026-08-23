@@ -15,7 +15,8 @@ import com.pirouette.nyagent.application.model.SavedStoryModel
  */
 class ConversationAdapter(
     private val conversations: List<SavedStoryModel>,
-    private val onSelect: (SavedStoryModel) -> Unit
+    private val onSelect: (SavedStoryModel) -> Unit,
+    private val onDelete: (SavedStoryModel) -> Unit
 ) : RecyclerView.Adapter<ConversationAdapter.ViewHolder>() {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -42,6 +43,13 @@ class ConversationAdapter(
                 if (position != RecyclerView.NO_POSITION) {
                     onSelect(conversations[position])
                 }
+            }
+            itemView.setOnLongClickListener {
+                val position = adapterPosition
+                if (position != RecyclerView.NO_POSITION) {
+                    onDelete(conversations[position])
+                }
+                true
             }
         }
     }

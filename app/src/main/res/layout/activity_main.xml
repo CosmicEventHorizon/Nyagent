@@ -25,6 +25,8 @@
             android:layout_marginStart="4dp"
             android:background="@null"
             android:contentDescription="Menu"
+            android:paddingTop="11dp"
+            android:paddingBottom="11dp"
             android:src="@drawable/icon_menu"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
@@ -45,9 +47,11 @@
 
         <ImageButton
             android:id="@+id/btnNewChat"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
-            android:layout_marginEnd="8dp"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginEnd="10dp"
+            android:layout_marginTop="6dp"
+            android:layout_marginBottom="6dp"
             android:background="@drawable/new_chat_circle_background"
             android:contentDescription="New chat"
             android:src="@drawable/icon_new_chat"
@@ -93,6 +97,15 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
+        <View
+            android:id="@+id/panelDivider"
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:background="@color/panel_divider"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/tvPanelTitle" />
+
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rvConversations"
             android:layout_width="0dp"
@@ -101,7 +114,7 @@
             app:layout_constraintBottom_toTopOf="@id/btnPaneSettings"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/tvPanelTitle" />
+            app:layout_constraintTop_toBottomOf="@id/panelDivider" />
 
         <Button
             android:id="@+id/btnPaneSettings"
@@ -224,8 +237,8 @@
             android:paddingTop="12dp"
             android:paddingBottom="12dp"
             android:scrollHorizontally="false"
-            android:textColor="@color/input_text"
-            android:textColorHint="#77889999"
+            android:textColor="#FFFFFFFF"
+            android:textColorHint="#88FFFFFF"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@id/btnSendText"
             app:layout_constraintStart_toStartOf="parent"

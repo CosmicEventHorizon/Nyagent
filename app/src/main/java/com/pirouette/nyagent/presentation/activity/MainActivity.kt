@@ -189,12 +189,19 @@ class MainActivity : AppCompatActivity() {
         toast("Conversation " + story.name)
     }
 
+
+    /** Deletes a saved conversation (long-press on its row). */
+    private fun deleteConversation(story: SavedStoryModel) {
+        storyService.deleteByName(story.name)
+        refreshConversationList()
+    }
     private fun refreshConversationList() {
         // Newest first.
         val conversations = storyService.loadAll().reversed().toList()
-        conversationAdapter = ConversationAdapter(conversations) { story ->
-            loadConversation(story)
-        }
+        conversationAdapter = ConversationAdapter(conversations,
+            onSelect = { story -> loadConversation(story) },
+            onDelete = { story -> deleteConversation(story) }
+        )
         rvConversations.adapter = conversationAdapter
     }
 
