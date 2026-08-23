@@ -3,8 +3,8 @@ package com.pirouette.nyagent.presentation.widget
 import android.content.Context
 import android.graphics.Color
 import android.webkit.WebView
+import android.webkit.WebViewClient
 import java.io.IOException
-import java.nio.charset.StandardCharsets
 
 /**
  * A reusable Markdown + LaTeX renderer built on a local [WebView]. KaTeX and
@@ -23,6 +23,9 @@ class MarkdownWebView(context: Context, content: String, textColor: String) : We
         const val BASE_URL = "file:///android_asset/markdown/"
         const val MIME_TYPE = "text/html"
         const val ENCODING = "utf-8"
+        const val HEIGHT_MEASURE_JS =
+            "(function(){var d=document.getElementById('content');" +
+            "return Math.max(document.body.scrollHeight, document.documentElement.scrollHeight, 1);})();"
     }
 
     init {
@@ -32,6 +35,11 @@ class MarkdownWebView(context: Context, content: String, textColor: String) : We
         isHorizontalScrollBarEnabled = false
         isScrollContainer = false
         setBackgroundColor(Color.TRANSPARENT)
+        webViewClient = object : WebViewClient() {
+            override fun onPageFinished(view: WebView, url: String) {
+                resizeToContent()
+            }
+        }
         render(content, textColor)
     }
 
@@ -42,6 +50,36 @@ class MarkdownWebView(context: Context, content: String, textColor: String) : We
             .replace("/*__CONTENT__*/", jsString(content))
             .replace("/*__TEXT_COLOR__*/", jsString(textColor))
         loadDataWithBaseURL(BASE_URL, page, MIME_TYPE, ENCODING, null)
+    }
+
+    /** Re-renders this WebView with new [content]. */
+    fun setContent(content: String, textColor: String) {
+        render(content, textColor)
+    }
+
+    /** Measures the rendered content height and resizes this WebView to fit it,
+     * so a WRAP_CONTENT bubble doesn't collapse to zero height. */
+    private fun resizeToContent() {
+        evaluateJavascript(HEIGHT_MEASURE_JS) { value ->
+            try {
+                val height = value
+                    .trim()
+                    .let { if (it.startsWith("\"") && it.endsWith("\"")) it.substring(1, it.length - 1) else it }
+                    .toDoubleOrNull()
+                    ?.toInt()
+                    ?: return@evaluateJavascript
+                post {
+                    val params = layoutParams
+                    if (params != null) {
+                        params.height = height
+                        layoutParams = params
+                        requestLayout()
+                    }
+                }
+            } catch (e: Exception) {
+                // Leave the existing height unchanged.
+            }
+        }
     }
 
     /** JSON-encodes [value] so it is safe as a JavaScript string literal. */
@@ -71,24 +109,20 @@ class MarkdownWebView(context: Context, content: String, textColor: String) : We
 
     /** Reads the bundled renderer.html from the APK package assets. */
     private fun readAssetHtml(): String {
-        val stream = MarkdownWebView::class.java.getResourceAsStream("/assets/markdown/renderer.html")
-            ?: throw IllegalStateException("Missing bundled renderer.html under assets/markdown/")
-        try {
-            return String(stream.readAllBytesStdlib(), StandardCharsets.UTF_8)
+        return try {
+            val stream = context.assets.open("markdown/renderer.html")
+            stream.use {
+                val buffer = java.io.ByteArrayOutputStream()
+                val chunk = ByteArray(4096)
+                while (true) {
+                    val n = it.read(chunk)
+                    if (n < 0) break
+                    buffer.write(chunk, 0, n)
+                }
+                String(buffer.toByteArray(), Charsets.UTF_8)
+            }
         } catch (e: IOException) {
             throw IllegalStateException("Failed to read bundled renderer.html", e)
         }
-    }
-
-    /** Reads all bytes from [stream] into a byte array, handling older Android. */
-    private fun java.io.InputStream.readAllBytesStdlib(): ByteArray {
-        val buffer = java.io.ByteArrayOutputStream()
-        val chunk = ByteArray(4096)
-        while (true) {
-            val n = read(chunk)
-            if (n < 0) break
-            buffer.write(chunk, 0, n)
-        }
-        return buffer.toByteArray()
     }
 }

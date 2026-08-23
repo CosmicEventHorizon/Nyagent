@@ -18,11 +18,11 @@
         android:textIsSelectable="true"
         android:textSize="15sp" />
 
-    <!-- Markdown + LaTeX bubble used for assistant responses. The WebView is
-         created in code and added here so it inherits the bubble background. -->
+    <!-- Markdown + LaTeX bubble used for assistant responses. Spans the row so
+         the WebView inside has a real width; height wraps its content. -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/markdownContainer"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="start"
         android:layout_marginTop="5dp"

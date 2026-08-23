@@ -88,8 +88,10 @@ class ChatAdapter(
             container.removeView(webView)
         }
         val fresh = MarkdownWebView(container.getContext(), content, "#111111")
+        // MATCH_PARENT width gives the WebView a real, non-collapsing measurement
+        // so it renders instead of shrinking to an empty sliver.
         val lp = android.view.ViewGroup.LayoutParams(
-            android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
+            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
             android.view.ViewGroup.LayoutParams.WRAP_CONTENT
         )
         container.addView(fresh, lp)
