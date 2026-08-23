@@ -45,9 +45,9 @@ class ChatAdapter(
             return
         }
         holder.markdownContainer.visibility = View.GONE
+        holder.markdownContainer.removeAllViews()
         val existing = holder.markdownContainer.getTag(R.id.markdown_webview_tag) as MarkdownWebView?
         if (existing != null) {
-            holder.markdownContainer.removeView(existing)
             holder.markdownContainer.setTag(R.id.markdown_webview_tag, null)
             holder.markdownContainer.setTag(R.id.markdown_content_tag, null)
         }
@@ -84,19 +84,29 @@ class ChatAdapter(
         if (webView != null && container.getTag(R.id.markdown_content_tag) == content) {
             return
         }
-        if (webView != null) {
-            container.removeView(webView)
-        }
+        container.removeAllViews()
         val fresh = MarkdownWebView(container.getContext(), content, "#111111")
-        // MATCH_PARENT width gives the WebView a real, non-collapsing measurement
-        // so it renders instead of shrinking to an empty sliver.
-        // A real starting height lets the WebView lay out its content before
-        // resizeToContent() measures and sizes the bubble to fit.
-        val lp = android.view.ViewGroup.LayoutParams(
+        val fallback = TextView(container.context).apply {
+            text = content
+            setTextColor(Color.parseColor("#111111"))
+            textSize = 15f
+            setLineSpacing(2f, 1f)
+            setPadding(10, 10, 10, 10)
+            setTextIsSelectable(true)
+        }
+        // The fallback is visible immediately. The WebView starts invisible
+        // and only takes over after it reports non-empty rendered content.
+        fresh.visibility = View.INVISIBLE
+        fresh.onContentRendered = {
+            fallback.visibility = View.GONE
+            fresh.visibility = View.VISIBLE
+        }
+        fun contentLayoutParams() = android.view.ViewGroup.LayoutParams(
             android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-            400
+            android.view.ViewGroup.LayoutParams.WRAP_CONTENT
         )
-        container.addView(fresh, lp)
+        container.addView(fallback, contentLayoutParams())
+        container.addView(fresh, contentLayoutParams())
         container.setTag(R.id.markdown_webview_tag, fresh)
         container.setTag(R.id.markdown_content_tag, content)
     }

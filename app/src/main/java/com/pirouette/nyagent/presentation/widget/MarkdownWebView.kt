@@ -18,6 +18,9 @@ import java.io.IOException
  */
 class MarkdownWebView(context: Context, content: String, textColor: String) : WebView(context) {
 
+    /** Called once the page has produced non-empty rendered content. */
+    var onContentRendered: (() -> Unit)? = null
+
     private companion object {
         const val BASE_URL = "file:///android_asset/markdown/"
         const val MIME_TYPE = "text/html"
@@ -27,6 +30,9 @@ class MarkdownWebView(context: Context, content: String, textColor: String) : We
             "var h=Math.ceil(document.body.scrollHeight);" +
             "if(!h||h<10){h=Math.ceil(d.getBoundingClientRect().height);}" +
             "return h>0?h:400;})();"
+        const val CONTENT_PRESENT_JS =
+            "(function(){var d=document.getElementById('content');" +
+            "return !!d && d.textContent.trim().length > 0;})();"
     }
 
     init {
@@ -40,7 +46,14 @@ class MarkdownWebView(context: Context, content: String, textColor: String) : We
             override fun onPageFinished(view: WebView, url: String) {
                 // Layout may not be final yet; give the renderer a beat to
                 // run, then measure and size the bubble to its content.
-                view.postDelayed({ resizeToContent() }, 250L)
+                view.postDelayed({
+                    view.evaluateJavascript(CONTENT_PRESENT_JS) { value ->
+                        if (value == "true") {
+                            onContentRendered?.invoke()
+                            resizeToContent()
+                        }
+                    }
+                }, 250L)
             }
         }
         render(content, textColor)
@@ -105,7 +118,7 @@ class MarkdownWebView(context: Context, content: String, textColor: String) : We
                 '\b' -> sb.append("\\b")
                 '\u000C' -> sb.append("\\f")
                 else -> {
-                    if (ch < ' ') {
+                    if (ch < ' ' || ch == '\u2028' || ch == '\u2029') {
                         sb.append("\\u").append(String.format("%04x", ch.code))
                     } else {
                         sb.append(ch)

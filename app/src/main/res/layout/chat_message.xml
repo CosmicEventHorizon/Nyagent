@@ -18,9 +18,9 @@
         android:textIsSelectable="true"
         android:textSize="15sp" />
 
-    <!-- Markdown + LaTeX bubble used for assistant responses. Spans the row so
-         the WebView inside has a real width; height wraps its content. -->
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <!-- Markdown + LaTeX bubble used for assistant responses. A FrameLayout
+         lets the native fallback and WebView occupy the same bubble reliably. -->
+    <FrameLayout
         android:id="@+id/markdownContainer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

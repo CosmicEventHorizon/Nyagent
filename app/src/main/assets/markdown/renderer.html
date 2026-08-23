@@ -41,10 +41,8 @@
 </head>
 <body>
 <script>
-function renderMarkdownJS(contentJson, colorJson) {
+function renderMarkdownJS(mdText, color) {
     var md = window.markdownit({ html: false, linkify: true, breaks: true });
-    var mdText = JSON.parse(contentJson);
-    var color = JSON.parse(colorJson);
     var el = document.getElementById("content");
     el.style.color = color;
     el.innerHTML = md.render(mdText);
@@ -64,7 +62,7 @@ function renderMarkdownJS(contentJson, colorJson) {
 <div id="content"></div>
 <script>
 try { renderMarkdownJS(/*__CONTENT__*/, /*__TEXT_COLOR__*/); }
-catch(e) { var el=document.getElementById('content'); el.textContent=JSON.parse(/*__CONTENT__*/); el.style.whiteSpace='pre-wrap'; }
+catch(e) { var el=document.getElementById('content'); el.textContent=/*__CONTENT__*/; el.style.whiteSpace='pre-wrap'; }
 </script>
 </body>
 </html>
