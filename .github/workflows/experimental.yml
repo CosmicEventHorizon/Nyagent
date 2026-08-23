@@ -63,8 +63,8 @@ jobs:
       - name: Package APK
         run: |
           SOURCE="app/build/outputs/apk/debug/app-debug.apk"
-          cp "$SOURCE" "latest-version-experimental.apk"
-          ls -la latest-version-experimental.apk
+          cp "$SOURCE" "latest-${APP_VERSION_NAME}.apk"
+          ls -la latest-*.apk
 
       - name: Ensure experimental tag exists
         run: |
@@ -103,12 +103,11 @@ jobs:
 
       - name: Replace experimental APK
         run: |
-          for asset in $(gh release view experimental --json assets --template "{{#each assets}}{{name}}\n{{/each}}"); do
-            if [[ "$asset" == *.apk ]]; then
-              echo "Deleting $asset"
-              gh release delete-asset experimental "$asset" --yes
-            fi
+          ASSET_IDS=$(gh release view experimental --json assets --jq '.assets[].id')
+          for id in $ASSET_IDS; do
+            echo "Deleting experimental asset id: $id"
+            gh api -X DELETE "repos/${GITHUB_REPOSITORY}/releases/assets/${id}" || true
           done
-          gh release upload experimental "latest-version-experimental.apk"
+          gh release upload experimental "latest-${APP_VERSION_NAME}.apk"
         env:
           GH_TOKEN: ${{ github.token }}
