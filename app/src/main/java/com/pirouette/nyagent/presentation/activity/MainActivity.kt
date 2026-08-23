@@ -257,10 +257,14 @@ class MainActivity : AppCompatActivity() {
         if (leftPanel.visibility == View.VISIBLE) {
             hidePanel()
         } else {
-            leftPanel.visibility = View.VISIBLE
-            panelBackdrop.visibility = View.VISIBLE
-            refreshConversationList()
+            openPanel()
         }
+    }
+
+    private fun openPanel() {
+        leftPanel.visibility = View.VISIBLE
+        panelBackdrop.visibility = View.VISIBLE
+        refreshConversationList()
     }
 
     private fun hidePanel() {
@@ -304,7 +308,7 @@ class MainActivity : AppCompatActivity() {
             distanceX: Float,
             distanceY: Float
         ): Boolean {
-            applySwipe(distanceX, distanceY, 70f)
+            applySwipe(distanceX, distanceY, 40f)
             return false
         }
 
@@ -314,7 +318,7 @@ class MainActivity : AppCompatActivity() {
             velocityX: Float,
             velocityY: Float
         ): Boolean {
-            applySwipe(e2.x - e1.x, e2.y - e1.y, 60f)
+            applySwipe(e2.x - e1.x, e2.y - e1.y, 30f)
             return false
         }
     }
@@ -324,13 +328,16 @@ class MainActivity : AppCompatActivity() {
      * soon as the horizontal movement clearly dominates the vertical one.
      */
     private fun applySwipe(dx: Float, dy: Float, threshold: Float) {
-        if (kotlin.math.abs(dx) < threshold || kotlin.math.abs(dx) <= kotlin.math.abs(dy)) {
+        if (kotlin.math.abs(dx) < threshold) {
+            return
+        }
+        // Only react to a horizon-dominant drag; otherwise a vertical scroll could
+        // accidentally open or close the panel.
+        if (kotlin.math.abs(dy) > kotlin.math.abs(dx) * 1.5f) {
             return
         }
         if (dx > 0 && leftPanel.visibility != View.VISIBLE) {
-            leftPanel.visibility = View.VISIBLE
-            panelBackdrop.visibility = View.VISIBLE
-            refreshConversationList()
+            openPanel()
         } else if (dx < 0 && leftPanel.visibility == View.VISIBLE) {
             hidePanel()
         }

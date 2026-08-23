@@ -60,18 +60,6 @@
             app:layout_constraintBottom_toBottomOf="parent" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <!-- Dimmed backdrop shown when the left pane is open -->
-    <View
-        android:id="@+id/panelBackdrop"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:background="#66000000"
-        android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
     <!-- Left side panel: conversation list + Settings at bottom -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/leftPanel"
@@ -256,4 +244,17 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
     </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- Invisible see-through layer above the chat area, from the panel's right
+         edge to the right edge of the screen. Touching it closes the panel. -->
+    <View
+        android:id="@+id/panelBackdrop"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="#33000000"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/leftPanel"
+        app:layout_constraintTop_toTopOf="parent" />
 </androidx.constraintlayout.widget.ConstraintLayout>
