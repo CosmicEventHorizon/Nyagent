@@ -51,6 +51,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var rvConversations: RecyclerView
     private lateinit var conversationAdapter: ConversationAdapter
     private lateinit var adapter: ChatAdapter
+    private var renderedMessages: List<ChatMessageModel> = emptyList()
     private var editMessageIndex: Int = -1
 
     /** Stable id for the conversation currently being written, regenerated per new chat. */
@@ -89,6 +90,7 @@ class MainActivity : AppCompatActivity() {
             enterEditMode(index)
         }
         recyclerview.adapter = adapter
+        renderedMessages = chatService.messages.toList()
 
         rvConversations.layoutManager = LinearLayoutManager(this)
         refreshConversationList()
@@ -123,19 +125,19 @@ class MainActivity : AppCompatActivity() {
         override fun onMessagesChanged() {
             updateSendButton()
             updateContextBar()
-            adapter.notifyDataSetChanged()
+            notifyMessageChanges()
             scrollToBottom()
         }
 
         override fun onAssistantDelta(content: String) {
             updateContextBar()
-            adapter.notifyDataSetChanged()
+            notifyMessageChanges()
             scrollToBottom()
         }
 
         override fun onError(message: String) {
             updateContextBar()
-            adapter.notifyDataSetChanged()
+            notifyMessageChanges()
             scrollToBottom()
         }
 
@@ -167,8 +169,35 @@ class MainActivity : AppCompatActivity() {
         }
         etPrompt.setText("")
         updateSendButton()
-        adapter.notifyDataSetChanged()
+        notifyMessageChanges()
         scrollToBottom()
+    }
+
+    /**
+     * Updates only the rows that actually changed. Most chat updates append to
+     * the list, so existing MarkdownWebViews stay attached and are not reloaded.
+     * Edits and conversation replacement still use a full refresh because they
+     * can change arbitrary positions.
+     */
+    private fun notifyMessageChanges() {
+        val current = chatService.messages.toList()
+        val previous = renderedMessages
+        if (current == previous) {
+            return
+        }
+
+        when {
+            current.size > previous.size &&
+                current.subList(0, previous.size) == previous -> {
+                adapter.notifyItemRangeInserted(previous.size, current.size - previous.size)
+            }
+            current.size < previous.size &&
+                previous.subList(0, current.size) == current -> {
+                adapter.notifyItemRangeRemoved(current.size, previous.size - current.size)
+            }
+            else -> adapter.notifyDataSetChanged()
+        }
+        renderedMessages = current
     }
 
     /** Persists the current conversation under its GUID so it survives relaunches. */
