@@ -261,7 +261,7 @@ class ChatService(
             try {
                 finalText = harness.run(_conversationLog)
             } catch (error: Exception) {
-                reportError("Harness error: " + (error.message ?: error.toString()))
+                reportError("Failed to connect to API: " + (error.message ?: error.toString()))
             } finally {
                 if (_messages.lastOrNull()?.author != MessageAuthorModel.ASSISTANT
                     && finalText.isNotBlank()) {

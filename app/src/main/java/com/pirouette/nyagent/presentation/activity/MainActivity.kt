@@ -3,6 +3,8 @@ package com.pirouette.nyagent.presentation.activity
 import android.content.Intent
 import android.os.Bundle
 import android.os.Environment
+import android.view.GestureDetector
+import android.view.MotionEvent
 import android.view.View
 import android.widget.EditText
 import android.widget.ImageButton
@@ -38,6 +40,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnSend: ImageButton
     private lateinit var btnEditClose: ImageButton
     private lateinit var btnMenu: ImageButton
+    private lateinit var btnNewChat: ImageButton
     private lateinit var editBar: View
     private lateinit var etPrompt: EditText
     private lateinit var contextBar: View
@@ -53,6 +56,7 @@ class MainActivity : AppCompatActivity() {
 
     /** Stable id for the conversation currently being written, regenerated per new chat. */
     private var currentConversationId: String? = null
+    private lateinit var swipeDetector: GestureDetector
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -69,6 +73,7 @@ class MainActivity : AppCompatActivity() {
         btnSend = findViewById(R.id.btnSendText)
         btnEditClose = findViewById(R.id.btnEditClose)
         btnMenu = findViewById(R.id.btnMenu)
+        btnNewChat = findViewById(R.id.btnNewChat)
         editBar = findViewById(R.id.editBar)
         contextBar = findViewById(R.id.contextBar)
         lblContext = findViewById(R.id.lblContext)
@@ -100,6 +105,11 @@ class MainActivity : AppCompatActivity() {
         btnMenu.setOnClickListener { togglePanel() }
         panelBackdrop.setOnClickListener { hidePanel() }
         btnPaneSettings.setOnClickListener { openSettings() }
+        btnNewChat.setOnClickListener { startNewChat() }
+
+        // Right-swipe opens the panel, left-swipe closes it.
+        swipeDetector = GestureDetector(this, swipeListener)
+        recyclerview.setOnTouchListener { _, event -> handleSwipeOnMessages(event) }
     }
 
     /** Installs the Linux environment on first boot, without blocking the UI. */
@@ -245,6 +255,55 @@ class MainActivity : AppCompatActivity() {
     private fun hidePanel() {
         leftPanel.visibility = View.GONE
         panelBackdrop.visibility = View.GONE
+    }
+
+    /** Starts a brand-new, empty conversation. */
+    private fun startNewChat() {
+        if (chatService.isRunning) return
+        currentConversationId = null
+        chatService.clearConversation()
+        exitEditMode()
+        hidePanel()
+        toast("New chat")
+    }
+
+    /**
+     * Feeds message-area touches to a gesture detector: a right-swipe opens the
+     * left panel, a left-swipe closes it, and a plain tap closes it too. Returns
+     * false so RecyclerView still handles scrolling.
+     */
+    private fun handleSwipeOnMessages(event: MotionEvent): Boolean {
+        swipeDetector.onTouchEvent(event)
+        return false
+    }
+
+    private val swipeListener = object : GestureDetector.SimpleOnGestureListener() {
+        override fun onSingleTapUp(e: MotionEvent): Boolean {
+            if (leftPanel.visibility == View.VISIBLE) {
+                hidePanel()
+            }
+            return false
+        }
+
+        override fun onFling(
+            e1: MotionEvent,
+            e2: MotionEvent,
+            velocityX: Float,
+            velocityY: Float
+        ): Boolean {
+            val dx = e2.x - e1.x
+            val threshold = 120f
+            if (kotlin.math.abs(dx) > threshold && kotlin.math.abs(dx) > kotlin.math.abs(e2.y - e1.y) * 2) {
+                if (dx > 0 && leftPanel.visibility != View.VISIBLE) {
+                    leftPanel.visibility = View.VISIBLE
+                    panelBackdrop.visibility = View.VISIBLE
+                    refreshConversationList()
+                } else if (dx < 0 && leftPanel.visibility == View.VISIBLE) {
+                    hidePanel()
+                }
+            }
+            return false
+        }
     }
 
     private fun openSettings() {
