@@ -103,11 +103,6 @@ jobs:
 
       - name: Replace experimental APK
         run: |
-          ASSET_IDS=$(gh release view experimental --json assets --jq '.assets[].id')
-          for id in $ASSET_IDS; do
-            echo "Deleting experimental asset id: $id"
-            gh api -X DELETE "repos/${GITHUB_REPOSITORY}/releases/assets/${id}" || true
-          done
-          gh release upload experimental "latest-experimental.apk"
+          gh release upload experimental "latest-experimental.apk" --clobber
         env:
           GH_TOKEN: ${{ github.token }}
