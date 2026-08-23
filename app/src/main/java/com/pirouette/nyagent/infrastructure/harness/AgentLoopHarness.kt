@@ -76,7 +76,7 @@ class AgentLoopHarness(
         conversation.addAll(history)
         val toolSet = tools
 
-        for (iteration in 0..maxIterations) {
+        while (true) {
             if (stopFlag.get()) {
                 return snapshotFinalText(conversation)
             }
@@ -123,9 +123,6 @@ class AgentLoopHarness(
                 return snapshotFinalText(conversation)
             }
         }
-        val exceeded = "Agent loop exceeded $maxIterations iterations."
-        listener?.onError(exceeded)
-        return exceeded
     }
 
     /** Routes a tool call through the coordinator: wait, kill, or run. */

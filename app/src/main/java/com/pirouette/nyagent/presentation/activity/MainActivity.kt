@@ -275,7 +275,6 @@ class MainActivity : AppCompatActivity() {
         chatService.clearConversation()
         exitEditMode()
         hidePanel()
-        toast("New chat")
     }
 
     /**
