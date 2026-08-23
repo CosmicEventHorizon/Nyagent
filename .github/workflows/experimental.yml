@@ -72,11 +72,26 @@ jobs:
           git push -f origin experimental || echo "tag push failed (may already exist on remote)"
 
       - name: Ensure experimental release exists
+        id: ensure_release
         run: |
-          gh release view experimental >/dev/null 2>&1 || gh release create experimental \
+          if gh release view experimental >/dev/null 2>&1; then
+            echo "experimental release already exists"
+          else
+            gh release create experimental \
+              --title "Nyagent Experimental" \
+              --target experimental \
+              --generate-notes
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+        continue-on-error: true
+
+      - name: Create experimental release (fallback)
+        if: ${{ steps.ensure_release.conclusion == 'failure' }}
+        run: |
+          gh release create experimental \
             --title "Nyagent Experimental" \
-            --target experimental \
-            --generate-notes
+            --target experimental
         env:
           GH_TOKEN: ${{ github.token }}
 
