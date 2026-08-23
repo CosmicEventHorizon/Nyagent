@@ -3,6 +3,7 @@ package com.pirouette.nyagent.presentation
 import android.content.Context
 import com.pirouette.nyagent.application.service.ChatService
 import com.pirouette.nyagent.application.service.CompactionService
+import com.pirouette.nyagent.application.service.ConversationTitleService
 import com.pirouette.nyagent.application.service.OllamaModelService
 import com.pirouette.nyagent.application.service.OpenRouterService
 import com.pirouette.nyagent.application.service.SettingsService
@@ -19,6 +20,7 @@ import com.pirouette.nyagent.infrastructure.harness.OpenRouterCompletionSender
 import com.pirouette.nyagent.infrastructure.harness.SettingsCompletionSender
 import com.pirouette.nyagent.infrastructure.linux.LinuxEnvironmentService
 import com.pirouette.nyagent.persistence.repository.PromptRepository
+import com.pirouette.nyagent.persistence.repository.ConversationTitleRepository
 import com.pirouette.nyagent.persistence.repository.SettingsRepository
 import com.pirouette.nyagent.persistence.repository.StoryRepository
 
@@ -40,6 +42,7 @@ class ServiceLocator(context: Context) {
     }
 
     private val storyRepository by lazy { StoryRepository(appContext) }
+    private val conversationTitleRepository by lazy { ConversationTitleRepository(appContext) }
 
     private val ollamaApiClient = OllamaApiClient()
     private val modelProxy = OllamaModelProxy(ollamaApiClient)
@@ -88,6 +91,10 @@ class ServiceLocator(context: Context) {
 
     val storyService: StoryService by lazy {
         StoryService(storyRepository)
+    }
+
+    val conversationTitleService: ConversationTitleService by lazy {
+        ConversationTitleService(completionSender, conversationTitleRepository)
     }
 
     val modelService: OllamaModelService by lazy {

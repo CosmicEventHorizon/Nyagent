@@ -18,6 +18,7 @@ import com.pirouette.nyagent.application.model.MessageAuthorModel
 import com.pirouette.nyagent.application.model.OllamaMessageModel
 import com.pirouette.nyagent.application.model.SavedStoryModel
 import com.pirouette.nyagent.application.service.ChatService
+import com.pirouette.nyagent.application.service.ConversationTitleService
 import com.pirouette.nyagent.application.service.StoryService
 import com.pirouette.nyagent.infrastructure.linux.LinuxEnvironmentService
 import com.pirouette.nyagent.presentation.adapter.ChatAdapter
@@ -29,10 +30,12 @@ class MainActivity : AppCompatActivity() {
     private companion object {
         const val STATE_MESSAGES = "state_messages"
         const val STATE_CONVERSATION_LOG = "state_conversation_log"
+        const val STATE_CONVERSATION_ID = "state_conversation_id"
     }
 
     private lateinit var chatService: ChatService
     private lateinit var storyService: StoryService
+    private lateinit var conversationTitleService: ConversationTitleService
     private lateinit var environmentService: LinuxEnvironmentService
 
     private lateinit var btnSend: ImageButton
@@ -63,7 +66,9 @@ class MainActivity : AppCompatActivity() {
         val locator = (application as NyagentApplication).serviceLocator
         chatService = locator.chatService
         storyService = locator.storyService
+        conversationTitleService = locator.conversationTitleService
         environmentService = locator.environmentService
+        currentConversationId = savedInstanceState?.getString(STATE_CONVERSATION_ID)
 
         createExternalStorage()
         ensureEnvironmentInstalled()
@@ -164,7 +169,15 @@ class MainActivity : AppCompatActivity() {
             editMessageIndex = -1
             editBar.visibility = View.GONE
         } else {
-            currentConversationId = currentConversationId ?: UUID.randomUUID().toString()
+            if (currentConversationId == null) {
+                val conversationId = UUID.randomUUID().toString()
+                currentConversationId = conversationId
+                conversationTitleService.generate(conversationId, content) {
+                    if (!isFinishing && !isDestroyed) {
+                        refreshConversationList()
+                    }
+                }
+            }
             chatService.sendUserMessage(content)
         }
         etPrompt.setText("")
@@ -219,12 +232,19 @@ class MainActivity : AppCompatActivity() {
     /** Deletes a saved conversation (long-press on its row). */
     private fun deleteConversation(story: SavedStoryModel) {
         storyService.deleteByName(story.name)
+        conversationTitleService.delete(story.name)
+        if (currentConversationId == story.name) {
+            currentConversationId = null
+        }
         refreshConversationList()
     }
     private fun refreshConversationList() {
         // Newest first.
         val conversations = storyService.loadAll().reversed().toList()
-        conversationAdapter = ConversationAdapter(conversations,
+        conversationAdapter = ConversationAdapter(
+            conversations,
+            currentConversationId,
+            conversationTitleService::displayTitle,
             onSelect = { story -> loadConversation(story) },
             onDelete = { story -> deleteConversation(story) }
         )
@@ -329,6 +349,7 @@ class MainActivity : AppCompatActivity() {
         super.onSaveInstanceState(outState)
         outState.putSerializable(STATE_MESSAGES, ArrayList(chatService.messages))
         outState.putSerializable(STATE_CONVERSATION_LOG, ArrayList(chatService.conversationLog))
+        outState.putString(STATE_CONVERSATION_ID, currentConversationId)
     }
 
     private fun restoreConversationState(state: Bundle?) {

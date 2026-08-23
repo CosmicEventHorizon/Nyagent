@@ -1,5 +1,6 @@
 package com.pirouette.nyagent.presentation.adapter
 
+import android.graphics.Typeface
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -15,6 +16,8 @@ import com.pirouette.nyagent.application.model.SavedStoryModel
  */
 class ConversationAdapter(
     private val conversations: List<SavedStoryModel>,
+    private val activeConversationId: String?,
+    private val titleFor: (SavedStoryModel) -> String,
     private val onSelect: (SavedStoryModel) -> Unit,
     private val onDelete: (SavedStoryModel) -> Unit
 ) : RecyclerView.Adapter<ConversationAdapter.ViewHolder>() {
@@ -26,7 +29,11 @@ class ConversationAdapter(
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.textView.text = conversations[position].name
+        val conversation = conversations[position]
+        holder.textView.text = titleFor(conversation)
+        val isActive = conversation.name == activeConversationId
+        holder.itemView.isSelected = isActive
+        holder.textView.setTypeface(null, if (isActive) Typeface.BOLD else Typeface.NORMAL)
         holder.textView.setTextColor(
             ContextCompat.getColor(holder.itemView.context, R.color.panel_item_text)
         )
