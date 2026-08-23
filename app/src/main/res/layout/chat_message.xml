@@ -3,11 +3,12 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
 
+    <!-- Plain text bubble used for user / tool / system messages. -->
     <TextView
         android:id="@+id/tvMessages"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="end"
+        android:layout_gravity="start"
         android:background="@drawable/bubble_assistant_background"
         android:layout_marginTop="5dp"
         android:layout_marginBottom="5dp"
@@ -16,4 +17,16 @@
         android:text="TextView"
         android:textIsSelectable="true"
         android:textSize="15sp" />
+
+    <!-- Markdown + LaTeX bubble used for assistant responses. The WebView is
+         created in code and added here so it inherits the bubble background. -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/markdownContainer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="start"
+        android:layout_marginTop="5dp"
+        android:layout_marginBottom="5dp"
+        android:background="@drawable/bubble_assistant_background"
+        android:visibility="gone" />
 </FrameLayout>

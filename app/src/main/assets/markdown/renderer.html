@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="lib/katex.min.css">
+<script src="lib/markdown-it.min.js"></script>
+<script src="lib/katex.min.js"></script>
+<script src="lib/auto-render.min.js"></script>
+<style>
+    html, body { margin: 0; padding: 0; background: transparent; }
+    #content {
+        font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        font-size: 15px;
+        line-height: 1.55;
+        padding: 10px;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }
+    #content pre {
+        background: #1e1e1e;
+        color: #dcdcdc;
+        border-radius: 6px;
+        padding: 10px;
+        overflow-x: auto;
+        font-family: "SF Mono", "Menlo", Consolas, "Courier New", monospace;
+        font-size: 13px;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+    }
+    #content code:not(.hljs) { background: rgba(0,0,0,0.08); padding: 1px 4px; border-radius: 3px; }
+    #content table { border-collapse: collapse; }
+    #content th, #content td { border: 1px solid #999; padding: 4px 8px; }
+    #content blockquote { border-left: 4px solid #888; margin: 8px 0; padding: 4px 12px; color: #444; }
+    #content img { max-width: 100%; height: auto; }
+    .katex-display { overflow-x: auto; overflow-y: hidden; }
+</style>
+</head>
+<body>
+<script>
+function renderMarkdownJS(contentJson, colorJson) {
+    var md = window.markdownit({ html: false, linkify: true, breaks: true });
+    var mdText = JSON.parse(contentJson);
+    var color = JSON.parse(colorJson);
+    var el = document.getElementById("content");
+    el.style.color = color;
+    el.innerHTML = md.render(mdText);
+    if (window.renderMathInElement) {
+        renderMathInElement(el, {
+            delimiters: [
+                { left: "$$", right: "$$", display: true },
+                { left: "\\[", right: "\\]", display: true },
+                { left: "$", right: "$", display: false },
+                { left: "\\(", right: "\\)", display: false }
+            ],
+            throwOnError: false
+        });
+    }
+}
+</script>
+<div id="content"></div>
+<script>
+renderMarkdownJS(/*__CONTENT__*/, /*__TEXT_COLOR__*/);
+</script>
+</body>
+</html>

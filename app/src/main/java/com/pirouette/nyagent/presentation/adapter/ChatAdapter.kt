@@ -13,6 +13,7 @@ import android.widget.Toast
 import com.google.gson.JsonParser
 import androidx.recyclerview.widget.RecyclerView
 import com.pirouette.nyagent.R
+import com.pirouette.nyagent.presentation.widget.MarkdownWebView
 import com.pirouette.nyagent.application.model.ChatMessageModel
 import com.pirouette.nyagent.application.model.MessageAuthorModel
 
@@ -39,6 +40,18 @@ class ChatAdapter(
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val message = messages[position]
+        if (message.author == MessageAuthorModel.ASSISTANT) {
+            bindMarkdown(holder, message)
+            return
+        }
+        holder.markdownContainer.visibility = View.GONE
+        val existing = holder.markdownContainer.getTag(R.id.markdown_webview_tag) as MarkdownWebView?
+        if (existing != null) {
+            holder.markdownContainer.removeView(existing)
+            holder.markdownContainer.setTag(R.id.markdown_webview_tag, null)
+            holder.markdownContainer.setTag(R.id.markdown_content_tag, null)
+        }
+        holder.textView.visibility = View.VISIBLE
         holder.textView.text = displayText(message)
         holder.textView.setTextColor(Color.parseColor(message.author.hexColor()))
         holder.textView.setBackgroundResource(message.author.backgroundResource())
@@ -56,6 +69,34 @@ class ChatAdapter(
             true
         }
     }
+
+    /**
+     * Shows [message] inside a Markdown + LaTeX WebView. The container uses the
+     * assistant bubble background and holds a single WebView that is created once
+     * and reused across binds of the same row.
+     */
+    private fun bindMarkdown(holder: ViewHolder, message: ChatMessageModel) {
+        holder.textView.visibility = View.GONE
+        holder.markdownContainer.visibility = View.VISIBLE
+        val container = holder.markdownContainer
+        val webView = container.getTag(R.id.markdown_webview_tag) as MarkdownWebView?
+        val content = message.content
+        if (webView != null && container.getTag(R.id.markdown_content_tag) == content) {
+            return
+        }
+        if (webView != null) {
+            container.removeView(webView)
+        }
+        val fresh = MarkdownWebView(container.getContext(), content, "#111111")
+        val lp = android.view.ViewGroup.LayoutParams(
+            android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
+            android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+        container.addView(fresh, lp)
+        container.setTag(R.id.markdown_webview_tag, fresh)
+        container.setTag(R.id.markdown_content_tag, content)
+    }
+
 
     override fun getItemCount(): Int = messages.size
 
@@ -136,5 +177,6 @@ class ChatAdapter(
 
     inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val textView: TextView = itemView.findViewById(R.id.tvMessages)
+        val markdownContainer: android.view.ViewGroup = itemView.findViewById(R.id.markdownContainer)
     }
 }

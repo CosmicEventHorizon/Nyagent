@@ -73,7 +73,8 @@ Prefer cloud models? Add your OpenRouter API key, browse all available models, a
 ### 💬 Built for long conversations
 
 * Clean messenger-style UI with color-coded message bubbles
-* Edit an earlier message and continue from there
+* Full **Markdown + LaTeX rendering** in AI responses — headings, lists, tables, code blocks, and inline/block math (via bundled KaTeX, offline)
+* Edit an earlier message and continue from that
 * Copy the text from any message
 * Live context usage indicator
 * Automatic context compaction for long chats

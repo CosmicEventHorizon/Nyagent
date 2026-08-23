@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="markdown_webview_tag" type="id"/>
+    <item name="markdown_content_tag" type="id"/>
+</resources>
