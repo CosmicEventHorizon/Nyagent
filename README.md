@@ -9,6 +9,10 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/CosmicEventHorizon/Nyagent"><img src="https://img.shields.io/github/stars/CosmicEventHorizon/Nyagent?style=social" alt="GitHub stars"></a>
+  <a href="https://github.com/CosmicEventHorizon/Nyagent"><img src="https://img.shields.io/github/watchers/CosmicEventHorizon/Nyagent?style=social" alt="GitHub watchers"></a>
+  <a href="https://github.com/CosmicEventHorizon/Nyagent/fork"><img src="https://img.shields.io/github/forks/CosmicEventHorizon/Nyagent?style=social" alt="GitHub forks"></a>
+  <a href="https://github.com/CosmicEventHorizon/Nyagent"><img src="https://img.shields.io/github/last-commit/CosmicEventHorizon/Nyagent?color=red" alt="GitHub last commit"></a>
   <a href="./LICENSE"><img src="https://img.shields.io/badge/license-GPLv3-green.svg" alt="GPLv3"></a>
 </p>
 
@@ -24,7 +28,7 @@
 
 Auto-generated from every commit on `main`.
 
-[![Experimental](https://img.shields.io/badge/Nyagent%20Experimental-latest-orange)](https://github.com/CosmicEventHorizon/Nyagent/releases/tag/experimental)
+[![Experimental](https://img.shields.io/badge/Nyagent%20Experimental-latest-orange)](https://github.com/CosmicEventHorizon/Nyagent/actions)
 
 </div>
 
@@ -32,7 +36,7 @@ Auto-generated from every commit on `main`.
 
 ## 🚀 Getting Started
 
-1. Grab the latest **stable** APK from [Releases](https://github.com/CosmicEventHorizon/Nyagent/releases/latest), or try the [experimental build](https://github.com/CosmicEventHorizon/Nyagent/releases/tag/experimental).
+1. Grab the latest **stable** APK from [Releases](https://github.com/CosmicEventHorizon/Nyagent/releases/latest), or grab the [experimental build](https://github.com/CosmicEventHorizon/Nyagent/actions) from the latest run.
 2. Open **Settings**.
 3. Choose how you want to run AI:
 
@@ -89,7 +93,7 @@ Two automated pipelines keep APKs ready:
 | Pipeline                    | Trigger                     | Output                                                        |
 | --------------------------- | --------------------------- | ------------------------------------------------------------- |
 | **Stable release**          | Manual (GitHub `Actions` → "Release Stable APK") | Versioned, generated release notes                    |
-| **Experimental**            | Every push / merge to `main` | Auto-updating build under the `experimental` release tag       |
+| **Experimental**            | Every push / merge to `main` | Debug APK artifact on the latest workflow run                        |
 
 Both builds are numbered from a **monotonic build counter**, so installing an experimental build over a stable one (or back again) always upgrades cleanly — no stuck or downgraded installs. When a signing keystore is configured, APKs are code-signed automatically.
 
