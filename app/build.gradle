@@ -7,19 +7,15 @@ android {
     namespace 'com.pirouette.nyagent'
     compileSdk 33
 
-    def signingEnabled = {
-        def store = System.getenv('SIGNING_STORE')
-        store != null && !store.isEmpty()
-    }()
+    def signingEnabled = true
 
     signingConfigs {
         nyagent {
-            if (signingEnabled) {
-                storeFile file(System.getenv('SIGNING_STORE'))
-                storePassword System.getenv('SIGNING_STORE_PASSWORD') ?: ''
-                keyAlias System.getenv('SIGNING_KEY_ALIAS') ?: ''
-                keyPassword System.getenv('SIGNING_KEY_PASSWORD') ?: ''
-            }
+            def store = System.getenv('SIGNING_STORE') ?: rootProject.file('keystore/nyagent-release.jks').path
+            storeFile file(store)
+            storePassword System.getenv('SIGNING_STORE_PASSWORD') ?: '59a6c4469aa9ffef2c3f3076a7cd3551'
+            keyAlias System.getenv('SIGNING_KEY_ALIAS') ?: 'nyagent'
+            keyPassword System.getenv('SIGNING_KEY_PASSWORD') ?: 'fb55c0cd5e0ea2dc452be1da40a2b96f'
         }
     }
 
