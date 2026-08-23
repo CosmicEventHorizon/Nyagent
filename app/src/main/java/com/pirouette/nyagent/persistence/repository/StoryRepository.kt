@@ -29,10 +29,17 @@ class StoryRepository(private val context: Context) : IStoryRepository {
         }
     }
 
+    /**
+     * Saves [story], replacing any existing story with the same name so a
+     * conversation keeps a single entry that is always refreshed on each send.
+     * The saved entry is moved to the end so it reads as the newest first.
+     */
     override fun save(story: SavedStoryModel) {
         try {
+            val stories = ArrayList(loadAll().filterNot { it.name == story.name })
+            stories.add(story)
             ObjectOutputStream(context.openFileOutput(FILE_NAME, Context.MODE_PRIVATE)).use { stream ->
-                stream.writeObject(ArrayList(loadAll() + story))
+                stream.writeObject(stories)
             }
         } catch (e: IOException) {
             e.printStackTrace()

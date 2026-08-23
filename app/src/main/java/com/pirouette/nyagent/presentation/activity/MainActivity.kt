@@ -1,17 +1,11 @@
 package com.pirouette.nyagent.presentation.activity
 
+import android.content.Intent
 import android.os.Bundle
 import android.os.Environment
-import android.view.Gravity
-import android.view.LayoutInflater
-import android.view.Menu
-import android.view.MenuItem
 import android.view.View
-import android.view.ViewGroup
-import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageButton
-import android.widget.PopupWindow
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -22,13 +16,13 @@ import com.pirouette.nyagent.R
 import com.pirouette.nyagent.application.model.ChatMessageModel
 import com.pirouette.nyagent.application.model.MessageAuthorModel
 import com.pirouette.nyagent.application.model.OllamaMessageModel
-import com.pirouette.nyagent.application.model.SavedPromptModel
 import com.pirouette.nyagent.application.model.SavedStoryModel
 import com.pirouette.nyagent.application.service.ChatService
 import com.pirouette.nyagent.application.service.StoryService
 import com.pirouette.nyagent.infrastructure.linux.LinuxEnvironmentService
 import com.pirouette.nyagent.presentation.adapter.ChatAdapter
-import com.pirouette.nyagent.presentation.adapter.StoryAdapter
+import com.pirouette.nyagent.presentation.adapter.ConversationAdapter
+import java.util.UUID
 
 class MainActivity : AppCompatActivity() {
 
@@ -43,13 +37,22 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var btnSend: ImageButton
     private lateinit var btnEditClose: ImageButton
+    private lateinit var btnMenu: ImageButton
     private lateinit var editBar: View
     private lateinit var etPrompt: EditText
     private lateinit var contextBar: View
     private lateinit var lblContext: TextView
-    private var editMessageIndex: Int = -1
+    private lateinit var panelBackdrop: View
+    private lateinit var leftPanel: View
+    private lateinit var btnPaneSettings: View
     private lateinit var recyclerview: RecyclerView
+    private lateinit var rvConversations: RecyclerView
+    private lateinit var conversationAdapter: ConversationAdapter
     private lateinit var adapter: ChatAdapter
+    private var editMessageIndex: Int = -1
+
+    /** Stable id for the conversation currently being written, regenerated per new chat. */
+    private var currentConversationId: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -60,16 +63,22 @@ class MainActivity : AppCompatActivity() {
         storyService = locator.storyService
         environmentService = locator.environmentService
 
-        createExternalFolder()
+        createExternalStorage()
         ensureEnvironmentInstalled()
 
         btnSend = findViewById(R.id.btnSendText)
         btnEditClose = findViewById(R.id.btnEditClose)
+        btnMenu = findViewById(R.id.btnMenu)
         editBar = findViewById(R.id.editBar)
         contextBar = findViewById(R.id.contextBar)
         lblContext = findViewById(R.id.lblContext)
         etPrompt = findViewById(R.id.etPrompt)
+        panelBackdrop = findViewById(R.id.panelBackdrop)
+        leftPanel = findViewById(R.id.leftPanel)
+        btnPaneSettings = findViewById(R.id.btnPaneSettings)
+        rvConversations = findViewById(R.id.rvConversations)
         recyclerview = findViewById(R.id.rvMessages)
+
         recyclerview.layoutManager = LinearLayoutManager(this).apply {
             stackFromEnd = true
         }
@@ -78,6 +87,9 @@ class MainActivity : AppCompatActivity() {
         }
         recyclerview.adapter = adapter
 
+        rvConversations.layoutManager = LinearLayoutManager(this)
+        refreshConversationList()
+
         chatService.listener = serviceListener
         restoreConversationState(savedInstanceState)
         updateContextBar()
@@ -85,6 +97,9 @@ class MainActivity : AppCompatActivity() {
 
         btnSend.setOnClickListener { onSendClicked() }
         btnEditClose.setOnClickListener { exitEditMode() }
+        btnMenu.setOnClickListener { togglePanel() }
+        panelBackdrop.setOnClickListener { hidePanel() }
+        btnPaneSettings.setOnClickListener { openSettings() }
     }
 
     /** Installs the Linux environment on first boot, without blocking the UI. */
@@ -138,12 +153,39 @@ class MainActivity : AppCompatActivity() {
             editMessageIndex = -1
             editBar.visibility = View.GONE
         } else {
+            currentConversationId = currentConversationId ?: UUID.randomUUID().toString()
             chatService.sendUserMessage(content)
+            saveCurrentConversation()
         }
         etPrompt.setText("")
         updateSendButton()
         adapter.notifyDataSetChanged()
         scrollToBottom()
+    }
+
+    /** Persists the current conversation under its GUID so it survives relaunches. */
+    private fun saveCurrentConversation() {
+        val id = currentConversationId ?: return
+        storyService.save(chatService.createStorySnapshot(id))
+        refreshConversationList()
+    }
+
+    /** Reloads [story] into the chat and marks it as the active conversation. */
+    private fun loadConversation(story: SavedStoryModel) {
+        if (chatService.isRunning) return
+        currentConversationId = story.name
+        chatService.loadStory(story)
+        hidePanel()
+        toast("Conversation " + story.name)
+    }
+
+    private fun refreshConversationList() {
+        // Newest first.
+        val conversations = storyService.loadAll().reversed().toList()
+        conversationAdapter = ConversationAdapter(conversations) { story ->
+            loadConversation(story)
+        }
+        rvConversations.adapter = conversationAdapter
     }
 
     /** Switch the send button to Stop while a harness loop is running. */
@@ -190,6 +232,25 @@ class MainActivity : AppCompatActivity() {
         etPrompt.clearFocus()
     }
 
+    private fun togglePanel() {
+        if (leftPanel.visibility == View.VISIBLE) {
+            hidePanel()
+        } else {
+            leftPanel.visibility = View.VISIBLE
+            panelBackdrop.visibility = View.VISIBLE
+            refreshConversationList()
+        }
+    }
+
+    private fun hidePanel() {
+        leftPanel.visibility = View.GONE
+        panelBackdrop.visibility = View.GONE
+    }
+
+    private fun openSettings() {
+        startActivity(Intent(this, SettingsActivity::class.java))
+    }
+
     override fun onResume() {
         super.onResume()
     }
@@ -224,94 +285,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
-        menuInflater.inflate(R.menu.options_menu, menu)
-        return super.onCreateOptionsMenu(menu)
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        return when (item.itemId) {
-            R.id.opSettings -> {
-                startActivity(android.content.Intent(this, SettingsActivity::class.java))
-                true
-            }
-            R.id.opSave -> {
-                showSavePopup()
-                true
-            }
-            R.id.opClear -> {
-                chatService.clearConversation()
-                true
-            }
-            R.id.opLoad -> {
-                showLoadPopup()
-                true
-            }
-            else -> super.onOptionsItemSelected(item)
-        }
-    }
-
-    private fun showLoadPopup() {
-        val inflater = LayoutInflater.from(this)
-        val popupView: View = inflater.inflate(R.layout.activity_load, null)
-        val container: RecyclerView = popupView.findViewById(R.id.rvLoads)
-        val btnDeleteStory: Button = popupView.findViewById(R.id.btnDeleteStory)
-        val btnLoadStory: Button = popupView.findViewById(R.id.btnLoadStory)
-
-        val stories = storyService.loadAll().toMutableList()
-        val popupWindow = PopupWindow(
-            popupView,
-            ViewGroup.LayoutParams.WRAP_CONTENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT,
-            true
-        )
-        popupWindow.showAtLocation(popupView, Gravity.CENTER, 0, 0)
-
-        container.layoutManager = LinearLayoutManager(this)
-        val popupAdapter = StoryAdapter(stories)
-        container.adapter = popupAdapter
-
-        btnLoadStory.setOnClickListener {
-            val position = popupAdapter.selectedPosition
-            if (position in stories.indices) {
-                chatService.loadStory(stories[position])
-                toast("${stories[position].name} Loaded!")
-            }
-        }
-
-        btnDeleteStory.setOnClickListener {
-            val position = popupAdapter.selectedPosition
-            if (position in stories.indices) {
-                stories.removeAt(position)
-                storyService.delete(position)
-                popupAdapter.selectedPosition = RecyclerView.NO_POSITION
-                popupAdapter.notifyDataSetChanged()
-            }
-        }
-    }
-
-    private fun showSavePopup() {
-        val inflater = LayoutInflater.from(this)
-        val popupSaveView: View = inflater.inflate(R.layout.activity_save, null)
-        val btnSaveName: Button = popupSaveView.findViewById(R.id.btnSaveName)
-        val etSaveName: EditText = popupSaveView.findViewById(R.id.etSaveName)
-        val popupWindow = PopupWindow(
-            popupSaveView,
-            ViewGroup.LayoutParams.WRAP_CONTENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT,
-            true
-        )
-        popupWindow.showAtLocation(popupSaveView, Gravity.CENTER, 0, 0)
-
-        btnSaveName.setOnClickListener {
-            val name = etSaveName.text.toString()
-            val story = chatService.createStorySnapshot(name)
-            storyService.save(story)
-            toast("$name Saved!")
-        }
-    }
-
-    private fun createExternalFolder() {
+    private fun createExternalStorage() {
         val folder = java.io.File(Environment.getExternalStorageDirectory(), "Nyagent")
         if (!folder.exists()) {
             folder.mkdir()
