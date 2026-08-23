@@ -3,8 +3,6 @@ package com.pirouette.nyagent.presentation.activity
 import android.content.Intent
 import android.os.Bundle
 import android.os.Environment
-import android.view.GestureDetector
-import android.view.MotionEvent
 import android.view.View
 import android.widget.EditText
 import android.widget.ImageButton
@@ -57,15 +55,6 @@ class MainActivity : AppCompatActivity() {
 
     /** Stable id for the conversation currently being written, regenerated per new chat. */
     private var currentConversationId: String? = null
-    private lateinit var swipeDetector: GestureDetector
-
-    // Accumulates horizontal drag so a slow, deliberate swipe opens/closes the
-    // panel even though GestureDetector reports small per-event scroll deltas.
-    private var swipeAccum: Float = 0f
-    private var swipeStartX: Float = 0f
-    private var swipeStartY: Float = 0f
-    private var swipeTracking: Boolean = false
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -114,13 +103,8 @@ class MainActivity : AppCompatActivity() {
         btnMenu.setOnClickListener { togglePanel() }
         btnPanelClose.setOnClickListener { hidePanel() }
         panelBackdrop.setOnClickListener { hidePanel() }
-        panelBackdrop.setOnTouchListener { _, event -> handleSwipeOnMessages(event) }
         btnPaneSettings.setOnClickListener { openSettings() }
         btnNewChat.setOnClickListener { startNewChat() }
-
-        // Right-swipe opens the panel, left-swipe closes it.
-        swipeDetector = GestureDetector(this, swipeListener)
-        recyclerview.setOnTouchListener { _, event -> handleSwipeOnMessages(event) }
     }
 
     /** Installs the Linux environment on first boot, without blocking the UI. */
@@ -290,80 +274,6 @@ class MainActivity : AppCompatActivity() {
         chatService.clearConversation()
         exitEditMode()
         hidePanel()
-    }
-
-    /**
-     * Feeds message-area touches to a gesture detector: a right-swipe opens the
-     * left panel, a left-swipe closes it, and a plain tap closes it too. Returns
-     * false so RecyclerView still handles scrolling.
-     */
-    private fun handleSwipeOnMessages(event: MotionEvent): Boolean {
-        swipeDetector.onTouchEvent(event)
-        // While the panel is open, consume touches so the message list does not
-        // scroll and interfere with tapping the chat area to close the panel.
-        return leftPanel.visibility == View.VISIBLE
-    }
-
-    private val swipeListener = object : GestureDetector.SimpleOnGestureListener() {
-        override fun onDown(e: MotionEvent): Boolean {
-            swipeAccum = 0f
-            swipeStartX = e.x
-            swipeStartY = e.y
-            swipeTracking = true
-            return false
-        }
-
-        override fun onScroll(
-            e1: MotionEvent,
-            e2: MotionEvent,
-            distanceX: Float,
-            distanceY: Float
-        ): Boolean {
-            // Accumulate the per-event deltas so a slow drag still crosses the
-            // threshold; reset each movement so the gesture is self-contained.
-            if (swipeTracking && kotlin.math.sign(distanceX) * swipeAccum >= 0f) {
-                swipeAccum += distanceX
-            } else {
-                swipeAccum = distanceX
-            }
-            val dx = swipeAccum
-            val dy = e2.y - swipeStartY
-            applySwipe(dx, dy, 24f)
-            return false
-        }
-
-        override fun onFling(
-            e1: MotionEvent,
-            e2: MotionEvent,
-            velocityX: Float,
-            velocityY: Float
-        ): Boolean {
-            swipeTracking = false
-            applySwipe(e2.x - e1.x, e2.y - e1.y, 16f)
-            return false
-        }
-    }
-
-    /**
-     * Opens the left panel on a right-swipe and closes it on a left-swipe. The
-     * horizontal distance needed is deliberately kept lower than the message
-     * list's vertical scroll so an edge swipe wins over a scroll.
-     */
-    private fun applySwipe(dx: Float, dy: Float, threshold: Float) {
-        if (kotlin.math.abs(dx) < threshold) {
-            return
-        }
-        // Only react when horizontal dominates; otherwise a vertical scroll
-        // could accidentally open or close the panel.
-        if (kotlin.math.abs(dy) > kotlin.math.abs(dx) * 2f) {
-            return
-        }
-        val panelOpen = leftPanel.visibility == View.VISIBLE
-        if (dx > 0 && !panelOpen) {
-            openPanel()
-        } else if (dx < 0 && panelOpen) {
-            hidePanel()
-        }
     }
 
     private fun openSettings() {

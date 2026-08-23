@@ -5,6 +5,7 @@ import android.graphics.Color
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import java.io.IOException
+import kotlin.math.ceil
 
 /**
  * A reusable Markdown + LaTeX renderer built on a local [WebView]. KaTeX and
@@ -33,6 +34,7 @@ class MarkdownWebView(context: Context, content: String, textColor: String) : We
         const val CONTENT_PRESENT_JS =
             "(function(){var d=document.getElementById('content');" +
             "return !!d && d.textContent.trim().length > 0;})();"
+        val MEASURE_DELAYS_MS = longArrayOf(100L, 500L, 1500L)
     }
 
     init {
@@ -44,15 +46,17 @@ class MarkdownWebView(context: Context, content: String, textColor: String) : We
         setBackgroundColor(Color.TRANSPARENT)
         webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView, url: String) {
-                // Layout may not be final yet; give the renderer a beat to
-                // run, then measure and size the bubble to its content.
-                view.postDelayed({
-                    view.evaluateJavascript(CONTENT_PRESENT_JS) { value ->
-                        if (value == "true") {
-                            resizeToContent()
+                // Markdown, fonts, math, and images can settle at different
+                // times. Re-measure so later reflow cannot crop the response.
+                for (delayMs in MEASURE_DELAYS_MS) {
+                    view.postDelayed({
+                        view.evaluateJavascript(CONTENT_PRESENT_JS) { value ->
+                            if (value == "true") {
+                                resizeToContent()
+                            }
                         }
-                    }
-                }, 250L)
+                    }, delayMs)
+                }
             }
         }
         render(content, textColor)
@@ -79,15 +83,20 @@ class MarkdownWebView(context: Context, content: String, textColor: String) : We
     private fun resizeToContent() {
         evaluateJavascript(HEIGHT_MEASURE_JS) { value ->
             try {
-                val height = parseMeasuredHeight(value)
+                val cssHeight = parseMeasuredHeight(value)
                 // A one-pixel result means the WebView has not completed its
                 // layout yet. Keep the native fallback until the page reports
                 // a meaningful bubble height.
-                if (height < 10) return@evaluateJavascript
+                if (cssHeight < 10) return@evaluateJavascript
+                // DOM measurements are CSS pixels (effectively dp), while
+                // LayoutParams expects physical pixels. Without this density
+                // conversion, responses are cropped on high-density screens.
+                val density = resources.displayMetrics.density
+                val pixelHeight = ceil(cssHeight * density + 2f * density).toInt()
                 post {
                     val params = layoutParams
                     if (params != null) {
-                        params.height = height
+                        params.height = pixelHeight
                         layoutParams = params
                         requestLayout()
                         // Notify the host only after the WebView has a real
