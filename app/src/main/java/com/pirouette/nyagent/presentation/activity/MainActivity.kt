@@ -58,6 +58,13 @@ class MainActivity : AppCompatActivity() {
     private var currentConversationId: String? = null
     private lateinit var swipeDetector: GestureDetector
 
+    // Accumulates horizontal drag so a slow, deliberate swipe opens/closes the
+    // panel even though GestureDetector reports small per-event scroll deltas.
+    private var swipeAccum: Float = 0f
+    private var swipeStartX: Float = 0f
+    private var swipeStartY: Float = 0f
+    private var swipeTracking: Boolean = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -104,6 +111,7 @@ class MainActivity : AppCompatActivity() {
         btnEditClose.setOnClickListener { exitEditMode() }
         btnMenu.setOnClickListener { togglePanel() }
         panelBackdrop.setOnClickListener { hidePanel() }
+        panelBackdrop.setOnTouchListener { _, event -> handleSwipeOnMessages(event) }
         btnPaneSettings.setOnClickListener { openSettings() }
         btnNewChat.setOnClickListener { startNewChat() }
 
@@ -294,21 +302,30 @@ class MainActivity : AppCompatActivity() {
     }
 
     private val swipeListener = object : GestureDetector.SimpleOnGestureListener() {
-        override fun onSingleTapUp(e: MotionEvent): Boolean {
-            if (leftPanel.visibility == View.VISIBLE) {
-                hidePanel()
-            }
+        override fun onDown(e: MotionEvent): Boolean {
+            swipeAccum = 0f
+            swipeStartX = e.x
+            swipeStartY = e.y
+            swipeTracking = true
             return false
         }
 
-        /** Opens/closes the panel mid-hold so a slow swipe is also recognised. */
         override fun onScroll(
             e1: MotionEvent,
             e2: MotionEvent,
             distanceX: Float,
             distanceY: Float
         ): Boolean {
-            applySwipe(distanceX, distanceY, 40f)
+            // Accumulate the per-event deltas so a slow drag still crosses the
+            // threshold; reset each movement so the gesture is self-contained.
+            if (swipeTracking && kotlin.math.sign(distanceX) * swipeAccum >= 0f) {
+                swipeAccum += distanceX
+            } else {
+                swipeAccum = distanceX
+            }
+            val dx = swipeAccum
+            val dy = e2.y - swipeStartY
+            applySwipe(dx, dy, 24f)
             return false
         }
 
@@ -318,27 +335,30 @@ class MainActivity : AppCompatActivity() {
             velocityX: Float,
             velocityY: Float
         ): Boolean {
-            applySwipe(e2.x - e1.x, e2.y - e1.y, 30f)
+            swipeTracking = false
+            applySwipe(e2.x - e1.x, e2.y - e1.y, 16f)
             return false
         }
     }
 
     /**
-     * Opens the left panel on a right-swipe and closes it on a left-swipe as
-     * soon as the horizontal movement clearly dominates the vertical one.
+     * Opens the left panel on a right-swipe and closes it on a left-swipe. The
+     * horizontal distance needed is deliberately kept lower than the message
+     * list's vertical scroll so an edge swipe wins over a scroll.
      */
     private fun applySwipe(dx: Float, dy: Float, threshold: Float) {
         if (kotlin.math.abs(dx) < threshold) {
             return
         }
-        // Only react to a horizon-dominant drag; otherwise a vertical scroll could
-        // accidentally open or close the panel.
-        if (kotlin.math.abs(dy) > kotlin.math.abs(dx) * 1.5f) {
+        // Only react when horizontal dominates; otherwise a vertical scroll
+        // could accidentally open or close the panel.
+        if (kotlin.math.abs(dy) > kotlin.math.abs(dx) * 2f) {
             return
         }
-        if (dx > 0 && leftPanel.visibility != View.VISIBLE) {
+        val panelOpen = leftPanel.visibility == View.VISIBLE
+        if (dx > 0 && !panelOpen) {
             openPanel()
-        } else if (dx < 0 && leftPanel.visibility == View.VISIBLE) {
+        } else if (dx < 0 && panelOpen) {
             hidePanel()
         }
     }
