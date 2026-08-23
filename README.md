@@ -101,19 +101,6 @@ Output:
 app/build/outputs/apk/debug/app-debug.apk
 ```
 
-### Code signing (optional)
-
-Release and experimental APKs are signed when the following repository secrets are set:
-
-| Secret                        | Description                              |
-| ----------------------------- | ---------------------------------------- |
-| `SIGNING_STORE`                | Base64-encoded `.p12`/`.jks` keystore     |
-| `SIGNING_STORE_PASSWORD`      | Keystore password                         |
-| `SIGNING_KEY_ALIAS`           | Key alias inside the keystore             |
-| `SIGNING_KEY_PASSWORD`        | Private-key password                      |
-
-Without these secrets the CI still builds and publishes **unsigned** APKs; nothing breaks.
-
 ---
 
 ## 🤝 Contributing
