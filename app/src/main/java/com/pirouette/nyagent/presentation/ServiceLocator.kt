@@ -78,6 +78,7 @@ class ServiceLocator(context: Context) {
 
     val chatService: ChatService by lazy {
         ChatService(
+            appContext,
             settingsRepository,
             environmentService,
             harnessLoop,

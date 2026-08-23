@@ -311,6 +311,18 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        chatService.listener = serviceListener
+        notifyMessageChanges()
+        updateContextBar()
+        updateSendButton()
+        scrollToBottom()
+    }
+
+    override fun onDestroy() {
+        if (chatService.listener === serviceListener) {
+            chatService.listener = null
+        }
+        super.onDestroy()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -320,6 +332,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun restoreConversationState(state: Bundle?) {
+        // The application-scoped ChatService survives activity recreation. Do
+        // not replace its live state with an older Bundle snapshot, especially
+        // while a background agent run is using the conversation history.
+        if (chatService.isRunning || chatService.isCompacting ||
+            chatService.messages.isNotEmpty() || chatService.conversationLog.isNotEmpty()) {
+            return
+        }
         @Suppress("unchecked_cast")
         val messages = state?.getSerializable(STATE_MESSAGES) as ArrayList<ChatMessageModel>?
         @Suppress("unchecked_cast")

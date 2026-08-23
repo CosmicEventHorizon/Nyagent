@@ -136,6 +136,6 @@ class OllamaApiClient {
         const val METHOD_GET = "GET"
         const val METHOD_POST = "POST"
         const val DEFAULT_TIMEOUT_MS = 10_000
-        const val CHAT_TIMEOUT_MS = 100_000
+        const val CHAT_TIMEOUT_MS = 600_000
     }
 }

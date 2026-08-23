@@ -1,5 +1,6 @@
 package com.pirouette.nyagent.application.service
 
+import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import com.pirouette.nyagent.application.interfaces.IEnvironmentService
@@ -10,16 +11,20 @@ import com.pirouette.nyagent.application.model.ChatMessageModel
 import com.pirouette.nyagent.application.model.MessageAuthorModel
 import com.pirouette.nyagent.application.model.OllamaMessageModel
 import com.pirouette.nyagent.application.model.SavedStoryModel
+import com.pirouette.nyagent.infrastructure.background.AgentForegroundService
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.min
 
 /** Orchestrates a chat session: message history, harness replies, and story snapshots. */
 class ChatService(
+    context: Context,
     private val settings: ISettingsRepository,
     private val environment: IEnvironmentService,
     private val harness: IHarnessLoop,
     private val compaction: CompactionService
 ) {
+
+    private val appContext = context.applicationContext
 
     interface Listener {
         fun onMessagesChanged()
@@ -34,6 +39,7 @@ class ChatService(
     private val _conversationLog = ArrayList<OllamaMessageModel>()
     private val _running = AtomicBoolean(false)
     private val _compacting = AtomicBoolean(false)
+    private val runProtectionActive = AtomicBoolean(false)
     private val mainHandler = Handler(Looper.getMainLooper())
 
     val messages: List<ChatMessageModel> get() = _messages
@@ -91,6 +97,7 @@ class ChatService(
         removeTrailingError()
         _messages.add(ChatMessageModel(MessageAuthorModel.USER, content))
         _conversationLog.add(OllamaMessageModel("user", content))
+        keepRunAlive()
         notifyStory()
         notifyContext()
         notifyChanged()
@@ -135,6 +142,7 @@ class ChatService(
             },
             onError = { message ->
                 _compacting.set(false)
+                releaseRunProtection()
                 reportError("Compaction failed: $message")
                 notifyContext()
             }
@@ -245,9 +253,12 @@ class ChatService(
 
     private fun streamReply() {
         if (!environment.isInstalled) {
+            releaseRunProtection()
             reportError("Linux environment is not installed. Install it from Settings first.")
             return
         }
+        // editAndRestart() also reaches this path without sendUserMessage().
+        keepRunAlive()
         runHarness()
     }
 
@@ -263,7 +274,9 @@ class ChatService(
         Thread {
             var finalText = ""
             try {
-                finalText = harness.run(_conversationLog)
+                // The harness owns an immutable snapshot for the duration of
+                // the run, so activity recreation cannot alter its input.
+                finalText = harness.run(_conversationLog.toList())
             } catch (error: Exception) {
                 reportError("Failed to connect to API: " + (error.message ?: error.toString()))
             } finally {
@@ -277,6 +290,7 @@ class ChatService(
                     notifyDelta(finalText)
                 }
                 _running.set(false)
+                releaseRunProtection()
                 notifyChanged()
             }
         }.start()
@@ -328,6 +342,25 @@ class ChatService(
         _messages.add(ChatMessageModel(MessageAuthorModel.SYSTEM, message))
         notifyChanged()
         notifyError(message)
+    }
+
+    private fun keepRunAlive() {
+        if (!runProtectionActive.compareAndSet(false, true)) {
+            return
+        }
+        try {
+            AgentForegroundService.start(appContext)
+        } catch (_: Exception) {
+            runProtectionActive.set(false)
+            // The request still runs on its worker thread if the OS refuses to
+            // start a foreground service for an unexpected platform reason.
+        }
+    }
+
+    private fun releaseRunProtection() {
+        if (runProtectionActive.compareAndSet(true, false)) {
+            AgentForegroundService.stop(appContext)
+        }
     }
 
 }
