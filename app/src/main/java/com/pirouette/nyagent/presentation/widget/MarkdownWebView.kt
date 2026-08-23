@@ -49,7 +49,6 @@ class MarkdownWebView(context: Context, content: String, textColor: String) : We
                 view.postDelayed({
                     view.evaluateJavascript(CONTENT_PRESENT_JS) { value ->
                         if (value == "true") {
-                            onContentRendered?.invoke()
                             resizeToContent()
                         }
                     }
@@ -81,13 +80,20 @@ class MarkdownWebView(context: Context, content: String, textColor: String) : We
         evaluateJavascript(HEIGHT_MEASURE_JS) { value ->
             try {
                 val height = parseMeasuredHeight(value)
-                if (height <= 0) return@evaluateJavascript
+                // A one-pixel result means the WebView has not completed its
+                // layout yet. Keep the native fallback until the page reports
+                // a meaningful bubble height.
+                if (height < 10) return@evaluateJavascript
                 post {
                     val params = layoutParams
                     if (params != null) {
                         params.height = height
                         layoutParams = params
                         requestLayout()
+                        // Notify the host only after the WebView has a real
+                        // height. Hiding the native fallback earlier makes a
+                        // WRAP_CONTENT WebView briefly measure to zero.
+                        onContentRendered?.invoke()
                     }
                 }
             } catch (e: Exception) {
