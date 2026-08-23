@@ -63,8 +63,8 @@ jobs:
       - name: Package APK
         run: |
           SOURCE="app/build/outputs/apk/debug/app-debug.apk"
-          cp "$SOURCE" "Nyagent-v${APP_VERSION_NAME}-debug.apk"
-          ls -la Nyagent-v*.apk
+          cp "$SOURCE" "latest-version-experimental.apk"
+          ls -la latest-version-experimental.apk
 
       - name: Ensure experimental tag exists
         run: |
@@ -93,9 +93,22 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
-      - name: Publish experimental APK
+      - name: Update experimental release description
         run: |
-          gh release upload experimental "Nyagent-v${APP_VERSION_NAME}-debug.apk" \
-            --clobber
+          COMMIT_URL="https://github.com/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA}"
+          BUILD_NUM="$(git rev-list --count HEAD)"
+          gh release edit experimental --notes "Latest experimental build v${APP_VERSION_NAME} (build ${BUILD_NUM}) from commit ${GITHUB_SHA:0:7} -- ${COMMIT_URL}. Replaced on every push to main; may be unstable."
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Replace experimental APK
+        run: |
+          for asset in $(gh release view experimental --json assets --template "{{#each assets}}{{name}}\n{{/each}}"); do
+            if [[ "$asset" == *.apk ]]; then
+              echo "Deleting $asset"
+              gh release delete-asset experimental "$asset" --yes
+            fi
+          done
+          gh release upload experimental "latest-version-experimental.apk"
         env:
           GH_TOKEN: ${{ github.token }}

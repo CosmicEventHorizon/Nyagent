@@ -148,6 +148,10 @@ class MainActivity : AppCompatActivity() {
             updateContextBar()
             updateSendButton()
         }
+
+        override fun onStoryChanged() {
+            saveCurrentConversation()
+        }
     }
 
     private fun onSendClicked() {
@@ -165,7 +169,6 @@ class MainActivity : AppCompatActivity() {
         } else {
             currentConversationId = currentConversationId ?: UUID.randomUUID().toString()
             chatService.sendUserMessage(content)
-            saveCurrentConversation()
         }
         etPrompt.setText("")
         updateSendButton()
@@ -292,24 +295,42 @@ class MainActivity : AppCompatActivity() {
             return false
         }
 
+        /** Opens/closes the panel mid-hold so a slow swipe is also recognised. */
+        override fun onScroll(
+            e1: MotionEvent,
+            e2: MotionEvent,
+            distanceX: Float,
+            distanceY: Float
+        ): Boolean {
+            applySwipe(distanceX, distanceY, 70f)
+            return false
+        }
+
         override fun onFling(
             e1: MotionEvent,
             e2: MotionEvent,
             velocityX: Float,
             velocityY: Float
         ): Boolean {
-            val dx = e2.x - e1.x
-            val threshold = 120f
-            if (kotlin.math.abs(dx) > threshold && kotlin.math.abs(dx) > kotlin.math.abs(e2.y - e1.y) * 2) {
-                if (dx > 0 && leftPanel.visibility != View.VISIBLE) {
-                    leftPanel.visibility = View.VISIBLE
-                    panelBackdrop.visibility = View.VISIBLE
-                    refreshConversationList()
-                } else if (dx < 0 && leftPanel.visibility == View.VISIBLE) {
-                    hidePanel()
-                }
-            }
+            applySwipe(e2.x - e1.x, e2.y - e1.y, 60f)
             return false
+        }
+    }
+
+    /**
+     * Opens the left panel on a right-swipe and closes it on a left-swipe as
+     * soon as the horizontal movement clearly dominates the vertical one.
+     */
+    private fun applySwipe(dx: Float, dy: Float, threshold: Float) {
+        if (kotlin.math.abs(dx) < threshold || kotlin.math.abs(dx) <= kotlin.math.abs(dy)) {
+            return
+        }
+        if (dx > 0 && leftPanel.visibility != View.VISIBLE) {
+            leftPanel.visibility = View.VISIBLE
+            panelBackdrop.visibility = View.VISIBLE
+            refreshConversationList()
+        } else if (dx < 0 && leftPanel.visibility == View.VISIBLE) {
+            hidePanel()
         }
     }
 

@@ -26,6 +26,8 @@ class ChatService(
         fun onAssistantDelta(content: String)
         fun onError(message: String)
         fun onContextChanged(percentUsed: Int)
+        /** Fired once per new story-relevant message so the host can persist it. */
+        fun onStoryChanged()
     }
 
     private val _messages = ArrayList<ChatMessageModel>()
@@ -50,6 +52,7 @@ class ChatService(
     var listener: Listener? = null
 
     private fun notifyChanged() = mainHandler.post { listener?.onMessagesChanged() }
+    private fun notifyStory() = mainHandler.post { listener?.onStoryChanged() }
     private fun notifyDelta(content: String) = mainHandler.post { listener?.onAssistantDelta(content) }
     private fun notifyError(message: String) = mainHandler.post { listener?.onError(message) }
     private fun notifyContext() = mainHandler.post { listener?.onContextChanged(contextPercentUsed) }
@@ -88,6 +91,7 @@ class ChatService(
         removeTrailingError()
         _messages.add(ChatMessageModel(MessageAuthorModel.USER, content))
         _conversationLog.add(OllamaMessageModel("user", content))
+        notifyStory()
         notifyContext()
         notifyChanged()
         if (shouldCompact()) {
@@ -267,6 +271,7 @@ class ChatService(
                     && finalText.isNotBlank()) {
                     _messages.add(ChatMessageModel(MessageAuthorModel.ASSISTANT, finalText))
                     _conversationLog.add(OllamaMessageModel("assistant", finalText))
+                    notifyStory()
                     notifyContext()
                     notifyChanged()
                     notifyDelta(finalText)
@@ -289,6 +294,7 @@ class ChatService(
         override fun onFinalResponse(response: String) {
             _messages.add(ChatMessageModel(MessageAuthorModel.ASSISTANT, response))
             _conversationLog.add(OllamaMessageModel("assistant", response))
+            notifyStory()
             notifyContext()
             notifyChanged()
             notifyDelta(response)
@@ -305,12 +311,14 @@ class ChatService(
      */
     private fun showToolCall(name: String, arguments: String) {
         _messages.add(ChatMessageModel(MessageAuthorModel.TOOL, "Tool: " + toollabel(name, arguments)))
+        notifyStory()
         notifyChanged()
     }
 
     /** Surfaces a spawn_agent invocation on screen. */
     private fun showSpawnedAgent(task: String) {
         _messages.add(ChatMessageModel(MessageAuthorModel.TOOL, "Tool: spawn_agent($task)"))
+        notifyStory()
         notifyChanged()
     }
 
