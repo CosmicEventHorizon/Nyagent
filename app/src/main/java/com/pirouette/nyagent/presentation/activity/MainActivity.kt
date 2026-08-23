@@ -189,7 +189,6 @@ class MainActivity : AppCompatActivity() {
         currentConversationId = story.name
         chatService.loadStory(story)
         hidePanel()
-        toast("Conversation " + story.name)
     }
 
 
