@@ -90,9 +90,11 @@ class ChatAdapter(
         val fresh = MarkdownWebView(container.getContext(), content, "#111111")
         // MATCH_PARENT width gives the WebView a real, non-collapsing measurement
         // so it renders instead of shrinking to an empty sliver.
+        // A real starting height lets the WebView lay out its content before
+        // resizeToContent() measures and sizes the bubble to fit.
         val lp = android.view.ViewGroup.LayoutParams(
             android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-            android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+            400
         )
         container.addView(fresh, lp)
         container.setTag(R.id.markdown_webview_tag, fresh)

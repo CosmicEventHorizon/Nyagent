@@ -8,14 +8,13 @@ import java.io.IOException
 
 /**
  * A reusable Markdown + LaTeX renderer built on a local [WebView]. KaTeX and
- * markdown-it are bundled under `assets/markdown/` so everything renders offline.
+ * markdown-it are inlined into the bundled `assets/markdown/renderer.html` so
+ * everything renders fully offline with no dependency on asset-relative loading.
  *
  * Each instance renders one assistant response. The renderer HTML is read from
- * the packaged APK assets, the model text is embedded as a JSON string literal,
- * and the combined document is loaded with a base URL of
- * `file:///android_asset/markdown/` so the relative `lib/` and `fonts/`
- * references resolve from the packaged assets. Inline math (`$...$`, `\(...\)`)
- * and block math (`$$...$$`, `\[...\]`) are rendered by KaTeX.
+ * the packaged APK assets and the model text is embedded as a JSON string
+ * literal, then the document is loaded. If the JavaScript renderer ever fails,
+ * the page falls back to showing the plain text so the bubble is never empty.
  */
 class MarkdownWebView(context: Context, content: String, textColor: String) : WebView(context) {
 
@@ -25,7 +24,9 @@ class MarkdownWebView(context: Context, content: String, textColor: String) : We
         const val ENCODING = "utf-8"
         const val HEIGHT_MEASURE_JS =
             "(function(){var d=document.getElementById('content');" +
-            "return Math.max(document.body.scrollHeight, document.documentElement.scrollHeight, 1);})();"
+            "var h=Math.ceil(document.body.scrollHeight);" +
+            "if(!h||h<10){h=Math.ceil(d.getBoundingClientRect().height);}" +
+            "return h>0?h:400;})();"
     }
 
     init {
@@ -37,7 +38,9 @@ class MarkdownWebView(context: Context, content: String, textColor: String) : We
         setBackgroundColor(Color.TRANSPARENT)
         webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView, url: String) {
-                resizeToContent()
+                // Layout may not be final yet; give the renderer a beat to
+                // run, then measure and size the bubble to its content.
+                view.postDelayed({ resizeToContent() }, 250L)
             }
         }
         render(content, textColor)
@@ -57,17 +60,15 @@ class MarkdownWebView(context: Context, content: String, textColor: String) : We
         render(content, textColor)
     }
 
-    /** Measures the rendered content height and resizes this WebView to fit it,
-     * so a WRAP_CONTENT bubble doesn't collapse to zero height. */
+    /**
+     * Measures the rendered content height and resizes this WebView to fit it,
+     * so the wrapping bubble grows to the markdown instead of collapsing empty.
+     */
     private fun resizeToContent() {
         evaluateJavascript(HEIGHT_MEASURE_JS) { value ->
             try {
-                val height = value
-                    .trim()
-                    .let { if (it.startsWith("\"") && it.endsWith("\"")) it.substring(1, it.length - 1) else it }
-                    .toDoubleOrNull()
-                    ?.toInt()
-                    ?: return@evaluateJavascript
+                val height = parseMeasuredHeight(value)
+                if (height <= 0) return@evaluateJavascript
                 post {
                     val params = layoutParams
                     if (params != null) {
@@ -77,9 +78,18 @@ class MarkdownWebView(context: Context, content: String, textColor: String) : We
                     }
                 }
             } catch (e: Exception) {
-                // Leave the existing height unchanged.
+                // Leave the existing height unchanged; the plain-text fallback
+                // in the page means the bubble still shows content.
             }
         }
+    }
+
+    /** Parses the JS measurement result, tolerating JSON-style quotes. */
+    private fun parseMeasuredHeight(value: String): Int {
+        val cleaned = value.trim()
+            .let { if (it.startsWith("\"") && it.endsWith("\"")) it.substring(1, it.length - 1) else it }
+            .trim()
+        return cleaned.toDoubleOrNull()?.toInt() ?: 0
     }
 
     /** JSON-encodes [value] so it is safe as a JavaScript string literal. */
@@ -113,7 +123,7 @@ class MarkdownWebView(context: Context, content: String, textColor: String) : We
             val stream = context.assets.open("markdown/renderer.html")
             stream.use {
                 val buffer = java.io.ByteArrayOutputStream()
-                val chunk = ByteArray(4096)
+                val chunk = ByteArray(8192)
                 while (true) {
                     val n = it.read(chunk)
                     if (n < 0) break
