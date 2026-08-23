@@ -7,12 +7,28 @@ android {
     namespace 'com.pirouette.nyagent'
     compileSdk 33
 
+    def signingEnabled = {
+        def store = System.getenv('SIGNING_STORE')
+        store != null && !store.isEmpty()
+    }()
+
+    signingConfigs {
+        nyagent {
+            if (signingEnabled) {
+                storeFile file(System.getenv('SIGNING_STORE'))
+                storePassword System.getenv('SIGNING_STORE_PASSWORD') ?: ''
+                keyAlias System.getenv('SIGNING_KEY_ALIAS') ?: ''
+                keyPassword System.getenv('SIGNING_KEY_PASSWORD') ?: ''
+            }
+        }
+    }
+
     defaultConfig {
         applicationId "com.pirouette.nyagent"
         minSdk 24
         targetSdk 33
-        versionCode 1
-        versionName "1.0"
+        versionCode System.getenv('APP_VERSION_CODE') ? Integer.parseInt(System.getenv('APP_VERSION_CODE')) : 1
+        versionName System.getenv('APP_VERSION_NAME') ?: "1.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -20,7 +36,15 @@ android {
     buildTypes {
         release {
             minifyEnabled false
+            if (signingEnabled) {
+                signingConfig signingConfigs.nyagent
+            }
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            if (signingEnabled) {
+                signingConfig signingConfigs.nyagent
+            }
         }
     }
     compileOptions {

@@ -1,0 +1,95 @@
+name: Release Stable APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Semantic version (optional, e.g. 1.1.0). Auto-increments patch if blank.'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Android SDK 33 packages
+        run: |
+          SDKMGR="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          echo "sdk_root: $ANDROID_HOME"
+          yes | "$SDKMGR" --licenses --channel=0 --sdk_root="$ANDROID_HOME"
+          yes | "$SDKMGR" --channel=0 --sdk_root="$ANDROID_HOME" "platforms;android-33" "build-tools;33.0.1"
+          ls "$ANDROID_HOME/platforms" "$ANDROID_HOME/build-tools"
+
+      - name: Compute version
+        run: |
+          BUILD_NUM="$(git rev-list --count HEAD)"
+          INPUT_VERSION="${{ inputs.version }}"
+          if [ -n "$INPUT_VERSION" ]; then
+            VERSION_NAME="${INPUT_VERSION#v}"
+          else
+            VERSION_NAME="1.0.${BUILD_NUM}"
+          fi
+          echo "APP_VERSION_NAME=${VERSION_NAME}" >> "$GITHUB_ENV"
+          echo "APP_VERSION_CODE=$((BUILD_NUM * 10))" >> "$GITHUB_ENV"
+
+      - name: Set up signing
+        env:
+          SIGNING_STORE_B64: ${{ secrets.SIGNING_STORE }}
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+        run: |
+          if [ -n "$SIGNING_STORE_B64" ]; then
+            echo "$SIGNING_STORE_B64" | base64 -d > "${{ runner.temp }}/nyagent.p12"
+            echo "SIGNING_STORE=${{ runner.temp }}/nyagent.p12" >> "$GITHUB_ENV"
+            echo "SIGNING_STORE_PASSWORD=${SIGNING_STORE_PASSWORD}" >> "$GITHUB_ENV"
+            echo "SIGNING_KEY_ALIAS=${SIGNING_KEY_ALIAS}" >> "$GITHUB_ENV"
+            echo "SIGNING_KEY_PASSWORD=${SIGNING_KEY_PASSWORD}" >> "$GITHUB_ENV"
+            echo "Signing enabled."
+          else
+            echo "No signing key present; building unsigned APK."
+          fi
+
+      - name: Build release APK
+        run: ./gradlew app:buildRelease app:packageRelease app:assembleRelease
+
+      - name: Package APK
+        run: |
+          SOURCE="app/build/outputs/apk/release/app-release.apk"
+          if [ ! -f "$SOURCE" ]; then SOURCE="app/build/outputs/apk/release/app-release-unsigned.apk"; fi
+          cp "$SOURCE" "Nyagent-v${APP_VERSION_NAME}-release.apk"
+          ls -la Nyagent-v*.apk
+
+      - name: Publish release with generated notes
+        id: publish_release
+        run: |
+          gh release create "v${APP_VERSION_NAME}" "Nyagent-v${APP_VERSION_NAME}-release.apk" \
+            --title "Nyagent v${APP_VERSION_NAME}" \
+            --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        continue-on-error: true
+
+      - name: Publish release (fallback, no notes)
+        if: ${{ steps.publish_release.conclusion == 'failure' }}
+        run: |
+          gh release create "v${APP_VERSION_NAME}" "Nyagent-v${APP_VERSION_NAME}-release.apk" \
+            --title "Nyagent v${APP_VERSION_NAME}"
+        env:
+          GH_TOKEN: ${{ github.token }}

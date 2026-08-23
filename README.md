@@ -13,68 +13,22 @@
   <a href="https://github.com/CosmicEventHorizon/Nyagent/releases"><img src="https://img.shields.io/github/v/release/CosmicEventHorizon/Nyagent?label=download" alt="Latest Release"></a>
 </p>
 
----
+<div align="center">
 
-## Nyagent
+**Stable build**
+[![Latest Release](https://img.shields.io/badge/Nyagent%20Release-latest-green)](https://github.com/CosmicEventHorizon/Nyagent/releases/latest)
 
-Nyagent is an open-source AI chat app for Android that works with both **local Ollama models** and **cloud models through OpenRouter**.
+**Experimental build** (auto-generated from every commit)
 
-Unlike a basic chat frontend, Nyagent can also give supported models access to their own private Linux environment — letting them work with files, run commands, download resources, write code, and complete more involved tasks directly from your phone.
+[![Experimental](https://img.shields.io/badge/Nyagent%20Experimental-latest-orange)](https://github.com/CosmicEventHorizon/Nyagent/releases/tag/experimental)
 
-No desktop companion required.
-
-## ✨ Features
-
-### 🤖 AI that can actually do things
-
-Nyagent gives supported models access to a private Linux workspace where they can:
-
-* Run shell commands
-* Create and edit files
-* Read files and directories
-* Download content from the web
-* Write and run code
-* Work through larger multi-step tasks
-
-Everything happens inside the app's private environment.
-
-### 🏠 Run local models with Ollama
-
-Connect Nyagent to any Ollama server on your device, home network, or another machine.
-
-Use your own models, your own hardware, and keep your chats local.
-
-### ☁️ Use hundreds of models with OpenRouter
-
-Prefer cloud models?
-
-Add your OpenRouter API key and choose from the models available on OpenRouter directly inside Nyagent.
-
-You can also view your OpenRouter balance from Settings.
-
-### 💬 Built for long conversations
-
-Nyagent includes the chat features you'd expect from a modern AI client:
-
-* Clean messenger-style conversations
-* Edit an earlier message and continue from there
-* Copy text from any message
-* See how much context is left
-* Automatic context management for long chats
-* Save and load conversations
-* Stop generation whenever you want
-
-### 🐧 Private Linux environment
-
-Nyagent includes its own persistent Linux environment.
-
-It lives entirely inside the app's private storage and is set up automatically, giving the AI a workspace without requiring Termux or another terminal app.
+</div>
 
 ---
 
 ## 🚀 Getting Started
 
-1. Download the latest APK from [Releases](https://github.com/CosmicEventHorizon/Nyagent/releases).
+1. Grab the latest **stable** APK from [Releases](https://github.com/CosmicEventHorizon/Nyagent/releases/latest), or try the [experimental build](https://github.com/CosmicEventHorizon/Nyagent/releases/tag/experimental).
 2. Open **Settings**.
 3. Choose how you want to run AI:
 
@@ -86,36 +40,84 @@ That's it.
 
 ---
 
-## 🧠 Ollama + OpenRouter
+## ✨ Features
 
-Nyagent supports both local and cloud models through the same chat experience.
+### 🤖 AI that can actually do things
 
-| Provider       | Best for                                        |
-| -------------- | ----------------------------------------------- |
-| **Ollama**     | Local models, privacy, offline setups           |
-| **OpenRouter** | Easy access to cloud models from many providers |
+Nyagent gives supported models access to a private Linux workspace:
 
-Switch providers whenever you want.
+* Run shell commands and receive results
+* Create, edit, read, and list files
+* Download content over the web
+* Write and run code
+* Delegate large multi-step tasks to sub-agents
+
+Everything runs inside the app's private environment.
+
+### 🏠 Run local models with Ollama
+
+Connect Nyagent to any Ollama server on your device, home network, or another machine — your models, your hardware, keep chats local.
+
+### ☁️ Use hundreds of models with OpenRouter
+
+Prefer cloud models? Add your OpenRouter API key, browse all available models, and pick one. You can also check your OpenRouter balance from Settings.
+
+### 💬 Built for long conversations
+
+* Clean messenger-style UI with color-coded message bubbles
+* Edit an earlier message and continue from there
+* Copy the text from any message
+* Live context usage indicator
+* Automatic context compaction for long chats
+* Save and load conversations
+* Stop a running generation whenever you want
+
+### 🐧 Private Linux environment
+
+Nyagent bundles a persistent Alpine Linux environment inside its private storage. It's installed on first launch (or from Settings) and gives the AI a real workspace—no Termux or external terminal app required.
+
+---
+
+## 🏗️ Build Pipelines
+
+Two automated pipelines keep APKs ready:
+
+| Pipeline                    | Trigger                     | Output                                                        |
+| --------------------------- | --------------------------- | ------------------------------------------------------------- |
+| **Stable release**          | Manual (GitHub `Actions` → "Release Stable APK") | Versioned, generated release notes                    |
+| **Experimental**            | Every push / merge to `main` | Auto-updating build under the `experimental` release tag       |
+
+Both builds are numbered from a **monotonic build counter**, so installing an experimental build over a stable one (or back again) always upgrades cleanly — no stuck or downgraded installs. When a signing keystore is configured, APKs are code-signed automatically.
 
 ---
 
 ## 🔧 Building from Source
 
-Nyagent is built natively for Android with Kotlin.
+Nyagent is written natively for Android in Kotlin.
 
 ```bash
-# Compile
-gradlew app:compileDebugKotlin
-
-# Build debug APK
-gradlew app:buildDebug app:packageDebug app:assembleDebug
+# Debug APK
+./gradlew app:buildDebug app:packageDebug app:assembleDebug
 ```
 
-The APK will be generated at:
+Output:
 
 ```text
 app/build/outputs/apk/debug/app-debug.apk
 ```
+
+### Code signing (optional)
+
+Release and experimental APKs are signed when the following repository secrets are set:
+
+| Secret                        | Description                              |
+| ----------------------------- | ---------------------------------------- |
+| `SIGNING_STORE`                | Base64-encoded `.p12`/`.jks` keystore     |
+| `SIGNING_STORE_PASSWORD`      | Keystore password                         |
+| `SIGNING_KEY_ALIAS`           | Key alias inside the keystore             |
+| `SIGNING_KEY_PASSWORD`        | Private-key password                      |
+
+Without these secrets the CI still builds and publishes **unsigned** APKs; nothing breaks.
 
 ---
 

@@ -1,0 +1,77 @@
+name: Experimental Debug APK
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Android SDK 33 packages
+        run: |
+          SDKMGR="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          echo "sdk_root: $ANDROID_HOME"
+          yes | "$SDKMGR" --licenses --channel=0 --sdk_root="$ANDROID_HOME"
+          yes | "$SDKMGR" --channel=0 --sdk_root="$ANDROID_HOME" "platforms;android-33" "build-tools;33.0.1"
+          ls "$ANDROID_HOME/platforms" "$ANDROID_HOME/build-tools"
+
+      - name: Compute version
+        run: |
+          BUILD_NUM="$(git rev-list --count HEAD)"
+          echo "APP_VERSION_NAME=1.0.${BUILD_NUM}-experimental" >> "$GITHUB_ENV"
+          echo "APP_VERSION_CODE=$((BUILD_NUM * 10 + 5))" >> "$GITHUB_ENV"
+
+      - name: Set up signing
+        env:
+          SIGNING_STORE_B64: ${{ secrets.SIGNING_STORE }}
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+        run: |
+          if [ -n "$SIGNING_STORE_B64" ]; then
+            echo "$SIGNING_STORE_B64" | base64 -d > "${{ runner.temp }}/nyagent.p12"
+            echo "SIGNING_STORE=${{ runner.temp }}/nyagent.p12" >> "$GITHUB_ENV"
+            echo "SIGNING_STORE_PASSWORD=${SIGNING_STORE_PASSWORD}" >> "$GITHUB_ENV"
+            echo "SIGNING_KEY_ALIAS=${SIGNING_KEY_ALIAS}" >> "$GITHUB_ENV"
+            echo "SIGNING_KEY_PASSWORD=${SIGNING_KEY_PASSWORD}" >> "$GITHUB_ENV"
+            echo "Signing enabled."
+          else
+            echo "No signing key present; building unsigned APK."
+          fi
+
+      - name: Build experimental debug APK
+        run: ./gradlew app:buildDebug app:packageDebug app:assembleDebug
+
+      - name: Package APK
+        run: |
+          SOURCE="app/build/outputs/apk/debug/app-debug.apk"
+          cp "$SOURCE" "Nyagent-v${APP_VERSION_NAME}-debug.apk"
+          ls -la Nyagent-v*.apk
+
+      - name: Publish experimental release
+        run: |
+          gh release delete "experimental" --yes --cleanup-tag 2>/dev/null || true
+          gh release create "experimental" "Nyagent-v${APP_VERSION_NAME}-debug.apk" \
+            --title "Nyagent Experimental Build" \
+            --notes "Automated experimental build.
+Version: ${APP_VERSION_NAME}"
+        env:
+          GH_TOKEN: ${{ github.token }}
