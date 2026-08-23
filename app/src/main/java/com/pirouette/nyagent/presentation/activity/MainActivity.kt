@@ -47,6 +47,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var lblContext: TextView
     private lateinit var panelBackdrop: View
     private lateinit var leftPanel: View
+    private lateinit var btnPanelClose: ImageButton
     private lateinit var btnPaneSettings: View
     private lateinit var recyclerview: RecyclerView
     private lateinit var rvConversations: RecyclerView
@@ -87,6 +88,7 @@ class MainActivity : AppCompatActivity() {
         etPrompt = findViewById(R.id.etPrompt)
         panelBackdrop = findViewById(R.id.panelBackdrop)
         leftPanel = findViewById(R.id.leftPanel)
+        btnPanelClose = findViewById(R.id.btnPanelClose)
         btnPaneSettings = findViewById(R.id.btnPaneSettings)
         rvConversations = findViewById(R.id.rvConversations)
         recyclerview = findViewById(R.id.rvMessages)
@@ -110,6 +112,7 @@ class MainActivity : AppCompatActivity() {
         btnSend.setOnClickListener { onSendClicked() }
         btnEditClose.setOnClickListener { exitEditMode() }
         btnMenu.setOnClickListener { togglePanel() }
+        btnPanelClose.setOnClickListener { hidePanel() }
         panelBackdrop.setOnClickListener { hidePanel() }
         panelBackdrop.setOnTouchListener { _, event -> handleSwipeOnMessages(event) }
         btnPaneSettings.setOnClickListener { openSettings() }
