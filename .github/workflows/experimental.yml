@@ -71,7 +71,6 @@ jobs:
           gh release delete "experimental" --yes --cleanup-tag 2>/dev/null || true
           gh release create "experimental" "Nyagent-v${APP_VERSION_NAME}-debug.apk" \
             --title "Nyagent Experimental Build" \
-            --notes "Automated experimental build.
-Version: ${APP_VERSION_NAME}"
+            --notes "Automated experimental build.\nVersion: ${APP_VERSION_NAME}"
         env:
           GH_TOKEN: ${{ github.token }}

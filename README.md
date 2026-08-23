@@ -10,15 +10,19 @@
 
 <p align="center">
   <a href="./LICENSE"><img src="https://img.shields.io/badge/license-GPLv3-green.svg" alt="GPLv3"></a>
-  <a href="https://github.com/CosmicEventHorizon/Nyagent/releases"><img src="https://img.shields.io/github/v/release/CosmicEventHorizon/Nyagent?label=download" alt="Latest Release"></a>
 </p>
 
 <div align="center">
 
-**Stable build**
-[![Latest Release](https://img.shields.io/badge/Nyagent%20Release-latest-green)](https://github.com/CosmicEventHorizon/Nyagent/releases/latest)
+## ⬇️ Download
 
-**Experimental build** (auto-generated from every commit)
+### Stable
+
+[![Stable Release](https://img.shields.io/badge/Nyagent%20Stable-latest-green)](https://github.com/CosmicEventHorizon/Nyagent/releases/latest)
+
+### Experimental
+
+Auto-generated from every commit on `main`.
 
 [![Experimental](https://img.shields.io/badge/Nyagent%20Experimental-latest-orange)](https://github.com/CosmicEventHorizon/Nyagent/releases/tag/experimental)
 
