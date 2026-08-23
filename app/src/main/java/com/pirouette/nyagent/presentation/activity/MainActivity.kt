@@ -230,7 +230,9 @@ class MainActivity : AppCompatActivity() {
         val percentLeft = 100 - chatService.contextPercentUsed
         lblContext.setText("Context left: $percentLeft%")
         contextBar.visibility = View.VISIBLE
-        etPrompt.isEnabled = !chatService.isCompacting && !chatService.isRunning
+        val promptEnabled = !chatService.isCompacting && !chatService.isRunning
+        etPrompt.isEnabled = promptEnabled
+        etPrompt.setHint(if (promptEnabled) "Type a message" else "Thinking...")
     }
 
     /** Enters edit mode for a previous user message: pre-fills the prompt and shows the close button. */
@@ -284,7 +286,9 @@ class MainActivity : AppCompatActivity() {
      */
     private fun handleSwipeOnMessages(event: MotionEvent): Boolean {
         swipeDetector.onTouchEvent(event)
-        return false
+        // While the panel is open, consume touches so the message list does not
+        // scroll and interfere with tapping the chat area to close the panel.
+        return leftPanel.visibility == View.VISIBLE
     }
 
     private val swipeListener = object : GestureDetector.SimpleOnGestureListener() {
