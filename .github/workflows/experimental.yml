@@ -54,7 +54,7 @@ jobs:
             echo "SIGNING_KEY_PASSWORD=${SIGNING_KEY_PASSWORD}" >> "$GITHUB_ENV"
             echo "Signing enabled."
           else
-            echo "No signing key present; building unsigned APK."
+            echo "Signing with committed keystore."
           fi
 
       - name: Build experimental debug APK
@@ -66,9 +66,23 @@ jobs:
           cp "$SOURCE" "Nyagent-v${APP_VERSION_NAME}-debug.apk"
           ls -la Nyagent-v*.apk
 
-      - name: Upload experimental APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: Nyagent-v${{ env.APP_VERSION_NAME }}-debug
-          path: Nyagent-v${{ env.APP_VERSION_NAME }}-debug.apk
-          if-no-files-found: error
+      - name: Ensure experimental tag exists
+        run: |
+          git tag -f experimental HEAD
+          git push -f origin experimental || echo "tag push failed (may already exist on remote)"
+
+      - name: Ensure experimental release exists
+        run: |
+          gh release view experimental >/dev/null 2>&1 || gh release create experimental \
+            --title "Nyagent Experimental" \
+            --target experimental \
+            --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Publish experimental APK
+        run: |
+          gh release upload experimental "Nyagent-v${APP_VERSION_NAME}-debug.apk" \
+            --clobber
+        env:
+          GH_TOKEN: ${{ github.token }}

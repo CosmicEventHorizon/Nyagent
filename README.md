@@ -28,7 +28,7 @@
 
 Auto-generated from every commit on `main`.
 
-[![Experimental](https://img.shields.io/badge/Nyagent%20Experimental-latest-orange)](https://github.com/CosmicEventHorizon/Nyagent/actions)
+[![Experimental](https://img.shields.io/badge/Nyagent%20Experimental-latest-orange)](https://github.com/CosmicEventHorizon/Nyagent/releases/tag/experimental)
 
 </div>
 
@@ -36,7 +36,7 @@ Auto-generated from every commit on `main`.
 
 ## 🚀 Getting Started
 
-1. Grab the latest **stable** APK from [Releases](https://github.com/CosmicEventHorizon/Nyagent/releases/latest), or grab the [experimental build](https://github.com/CosmicEventHorizon/Nyagent/actions) from the latest run.
+1. Grab the latest **stable** APK from [Releases](https://github.com/CosmicEventHorizon/Nyagent/releases/latest), or grab the [experimental build](https://github.com/CosmicEventHorizon/Nyagent/releases/tag/experimental), which accumulates every commit
 2. Open **Settings**.
 3. Choose how you want to run AI:
 
