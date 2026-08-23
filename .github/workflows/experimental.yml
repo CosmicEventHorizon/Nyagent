@@ -79,7 +79,6 @@ jobs:
           else
             gh release create experimental \
               --title "Nyagent Experimental" \
-              --target experimental \
               --generate-notes
           fi
         env:
@@ -90,8 +89,7 @@ jobs:
         if: ${{ steps.ensure_release.conclusion == 'failure' }}
         run: |
           gh release create experimental \
-            --title "Nyagent Experimental" \
-            --target experimental
+            --title "Nyagent Experimental"
         env:
           GH_TOKEN: ${{ github.token }}
 
