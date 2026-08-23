@@ -66,11 +66,9 @@ jobs:
           cp "$SOURCE" "Nyagent-v${APP_VERSION_NAME}-debug.apk"
           ls -la Nyagent-v*.apk
 
-      - name: Publish experimental release
-        run: |
-          gh release delete "experimental" --yes --cleanup-tag 2>/dev/null || true
-          gh release create "experimental" "Nyagent-v${APP_VERSION_NAME}-debug.apk" \
-            --title "Nyagent Experimental Build" \
-            --notes "Automated experimental build.\nVersion: ${APP_VERSION_NAME}"
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Upload experimental APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Nyagent-v${APP_VERSION_NAME}-debug
+          path: Nyagent-v${APP_VERSION_NAME}-debug.apk
+          if-no-files-found: error

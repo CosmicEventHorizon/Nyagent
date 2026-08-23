@@ -86,19 +86,6 @@ Nyagent bundles a persistent Alpine Linux environment inside its private storage
 
 ---
 
-## 🏗️ Build Pipelines
-
-Two automated pipelines keep APKs ready:
-
-| Pipeline                    | Trigger                     | Output                                                        |
-| --------------------------- | --------------------------- | ------------------------------------------------------------- |
-| **Stable release**          | Manual (GitHub `Actions` → "Release Stable APK") | Versioned, generated release notes                    |
-| **Experimental**            | Every push / merge to `main` | Debug APK artifact on the latest workflow run                        |
-
-Both builds are numbered from a **monotonic build counter**, so installing an experimental build over a stable one (or back again) always upgrades cleanly — no stuck or downgraded installs. When a signing keystore is configured, APKs are code-signed automatically.
-
----
-
 ## 🔧 Building from Source
 
 Nyagent is written natively for Android in Kotlin.
